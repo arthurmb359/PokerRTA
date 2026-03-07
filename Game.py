@@ -1,20 +1,16 @@
+﻿import time
+import threading
+import re
+
+import cv2
+import keyboard
+import numpy as np
 import pyautogui
-from PIL import Image, ImageEnhance, ImageFilter
-import io
-import os
+from PIL import Image
+from paddleocr import PaddleOCR
+
 from Player import Player
 from TableScrapper import TableScrapper
-import time
-import numpy as np
-import keyboard
-import threading
-import cv2
-import re
-from paddleocr import PaddleOCR
-from ppocr.utils.logging import get_logger
-import logging
-logger = get_logger()
-logger.setLevel(logging.ERROR)
 
 #BET AREA FROM PPOKER
 BET_AREA_0 = (248, 747)
@@ -27,10 +23,11 @@ BET_WIDTH_HEIGHT = (75, 23)
 
 #BET AREA HU SUPREMA
 
+
 class Game:
 
     def __init__(self):
-        self.ocr = PaddleOCR(use_angle_cls=True, lang="en")
+        self.ocr = PaddleOCR(lang="en", use_textline_orientation=False)
         self.screenshot = None
         self.button_pos = 0
         self.btn_img_pos = 0
@@ -82,7 +79,7 @@ class Game:
     def get_button_pos(self):
         location = None
         while (location == None):
-            location = self.table.check_on_screen("dealer.png")
+            location = self.table.check_on_screen("M CAM .png")
 
         if(location.left != self.btn_img_pos): ##check if button changed
             self.btn_img_pos = location.left
@@ -103,59 +100,52 @@ class Game:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(img, 160, 255, cv2.THRESH_BINARY)
 
-        self.screenshot = Image.fromarray(binary)  # A imagem é convertida para o formato PIL
-        self.screenlist[i] = self.screenshot  # Armazena a imagem na lista
+        self.screenshot = Image.fromarray(binary)
+        self.screenlist[i] = self.screenshot
 
-        # Converte a imagem PIL para np.ndarray para o PaddleOCR
-        screenshot_np = np.array(self.screenshot)
+        screenshot_np = cv2.cvtColor(np.array(self.screenshot), cv2.COLOR_GRAY2BGR)
+        result = self.ocr.predict(
+            screenshot_np,
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+        )
 
-        result = self.ocr.ocr(screenshot_np)
+        if result:
+            if isinstance(result[0], dict):
+                for text in result[0].get("rec_texts", []):
+                    text = text.replace(" ", "").replace("B", "").strip()
+                    try:
+                        return float(text)
+                    except ValueError:
+                        continue
+            elif result[0]:
+                for line in result[0]:
+                    text = line[1][0]
+                    text = text.replace(" ", "").replace("B", "").strip()
+                    try:
+                        return float(text)
+                    except ValueError:
+                        continue
 
-        if result and result[0]:
-            for line in result[0]:
-                text = line[1][0]  # O texto detectado está aqui
-                # Remover espaços e a letra "B"
-                text = text.replace(" ", "").replace("B", "").strip()
-                try:
-                    return float(text)
-                except ValueError:
-                    return ""
         return ""
-
-
-        # """Binarize image from gray channel with 76 as threshold"""
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        #
-        # _, binary = cv2.threshold(img, 160, 255, cv2.THRESH_BINARY)
-        #
-        # self.screenshot = Image.fromarray(binary)
-        # self.screenlist[i] = self.screenshot
-        #
-        # text = pytesseract.image_to_string(binary, config="--psm 6 tessedit_char_whitelist=0123456789.")
-        # print(text.strip())
-        # return float(text) if text.strip() == bool(re.match(r"^[+-]?\d*(?:\.\d+)?$", text.strip())) else ""
 
     def crop_image(self, image):
         # Use pytesseract to detect text and get bounding box data
         custom_config = r'-c tessedit_char_whitelist=B --psm 11'  # Only allow letters
         detailed_data = pytesseract.image_to_data(image, config=custom_config, output_type=Output.DICT)
 
-        # Print detected text for debugging
-        #print("Detected text:", detailed_data["text"])
-
         for i, text in enumerate(detailed_data["text"]):
             text = text.strip()
-            if text == "BB":  # Check if it's exactly "BB"/
-                # Get bounding box for "BB"
+            if text == "BB":
                 x_start = detailed_data["left"][i] + detailed_data["width"][i] - 25
-
                 number_crop = image.crop((0, 0, x_start, 25))
                 return number_crop
-        return image #Caso nao ache BB na imagem
+        return image
 
     @staticmethod
     def mouse_pos():
         table = TableScrapper()
         print(f" Table Edge Location - Left: '{table.get_left_edge()}' - Top: '{table.get_top_edge()}'")
-        x, y = pyautogui.position()  # Setting x and y to the coordinates of mouse
-        print(f" Mouse Location - {x, y}")  # Printing x and y values
+        x, y = pyautogui.position()
+        print(f" Mouse Location - {x, y}")

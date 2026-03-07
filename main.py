@@ -1,4 +1,4 @@
-import pyautogui
+﻿import pyautogui
 from Game import Game
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 import time
@@ -11,6 +11,7 @@ from TableScrapper import TableScrapper
 from paddleocr import PaddleOCR
 
 def crop():
+
     image_path = r"C:\Users\Arthur\Desktop\Poker\Pics\0.1BB.png"  # Replace with your image file path
     tessdata_path = r"C:\Program Files\Tesseract-OCR\tessdata"
     # Preprocess the image
@@ -58,10 +59,10 @@ def crop():
 #     """Binarize image from gray channel with 76 as threshold"""
 #     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 #
-#     # Aplicar um leve desfoque para reduzir ruído
+#     # Aplicar um leve desfoque para reduzir ruido
 #     img = cv2.GaussianBlur(img, (3, 3), 0)
 #
-#     # Aplicar binarização adaptativa para melhor contraste
+#     # Aplicar binarizacao adaptativa para melhor contraste
 #     binary = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
 #                                    cv2.THRESH_BINARY, 11, 2)
 #
@@ -70,39 +71,34 @@ def crop():
 
 #Serve para testar se o paddle identifica imagem
 def paddle_test():
-    ocr = PaddleOCR(use_angle_cls=True, lang="en")
+
+    ocr = PaddleOCR(lang="en", use_textline_orientation=False)
 
     start = timer()
 
-    image_path = r"C:\Users\Arthur\Desktop\Poker\Pics\0.5.png"
-    result = ocr.ocr(image_path)
+    image_path = "images/1BB_Suprema.png"
+    result = ocr.predict(image_path, use_textline_orientation=False)
     end = timer()
     print(f" Time Elapsed: '{end - start:.9f}'")
 
     if result and result[0]:
-        for line in result[0]:
-            text = line[1][0]  # O texto detectado está aqui
-            print(text)
+        if isinstance(result[0], dict):
+            for text in result[0].get("rec_texts", []):
+                print(text)
+        else:
+            for line in result[0]:
+                text = line[1][0]
+                print(text)
     else:
         print("Nenhum texto detectado.")
 
-    start = timer()
-    image_path = r"C:\Users\Arthur\Desktop\Poker\Pics\111.4BB.png"
-    result = ocr.ocr(image_path)
-    end = timer()
-    print(f" Time Elapsed: '{end - start:.9f}'")
+game = Game()
+game.start()
+# while True:
+#     sleep(2)
+#     Game.mouse_pos()
 
-    if result and result[0]:
-        for line in result[0]:
-            text = line[1][0]  # O texto detectado está aqui
-            print(text)
-
-#game = Game()
-#game.start()
-while True:
-    Game.mouse_pos()
-
-# paddle_test()
+#paddle_test()
 #crop_bb_out()
 #testcrop()
 

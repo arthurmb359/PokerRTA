@@ -1,9 +1,9 @@
 import pyautogui
 from PIL import Image
-import io
-import time
-import os
-from Player import Player
+# import io
+# import time
+# import os
+# from Player import Player
 
 class TableScrapper:
 
