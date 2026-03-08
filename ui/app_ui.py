@@ -1,7 +1,7 @@
 ﻿import tkinter as tk
 from tkinter import ttk, messagebox
 
-from TableScrapper import TableScrapper
+from services.table.table_scrapper import TableScrapper
 from configs.config_manager import (
     FORMATS,
     PLATFORMS,

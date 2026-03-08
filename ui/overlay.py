@@ -1,7 +1,9 @@
 ﻿import threading
 import tkinter as tk
 
-from configs.config_manager import get_regions_category, set_calibration_category
+from configs.config_manager import get_regions_category
+from services.table.calibration_service import update_calibration_region
+from services.table.region_mapper import absolute_corners_to_relative, relative_to_absolute_corners
 
 
 class CalibrationOverlay:
@@ -101,11 +103,11 @@ class CalibrationOverlay:
     def _draw_category(self, category, label_prefix):
         regions = get_regions_category(self.platform, self.game_format, category)
         for idx, rel in enumerate(regions):
-            x1, y1, x2, y2 = rel
-            ax1 = self.table_left + int(x1)
-            ay1 = self.table_top + int(y1)
-            ax2 = self.table_left + int(x2)
-            ay2 = self.table_top + int(y2)
+            ax1, ay1, ax2, ay2 = relative_to_absolute_corners(
+                self.table_left,
+                self.table_top,
+                rel,
+            )
 
             rect_id = self.canvas.create_rectangle(
                 ax1,
@@ -217,18 +219,17 @@ class CalibrationOverlay:
         category = info["category"]
         index = info["index"]
 
-        x1, y1, x2, y2 = self.canvas.coords(rect_id)
-        rel = [
-            int(round(x1 - self.table_left)),
-            int(round(y1 - self.table_top)),
-            int(round(x2 - self.table_left)),
-            int(round(y2 - self.table_top)),
-        ]
+        corners = self.canvas.coords(rect_id)
+        rel = absolute_corners_to_relative(self.table_left, self.table_top, tuple(corners))
 
-        regions = get_regions_category(self.platform, self.game_format, category)
+        regions = update_calibration_region(
+            platform=self.platform,
+            game_format=self.game_format,
+            category=category,
+            index=index,
+            rel_region=rel,
+        )
         if index < len(regions):
-            regions[index] = rel
-            set_calibration_category(self.platform, self.game_format, category, regions)
             print(f"[Overlay] updated {category}[{index}] -> {rel}")
             if self.on_update is not None:
                 self.on_update(category, regions)

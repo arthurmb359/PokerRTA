@@ -1,0 +1,185 @@
+﻿import time
+
+import pyautogui
+
+from domain.player import Player
+from services.table.calibration_service import apply_runtime_regions
+from services.table.region_mapper import relative_to_absolute_region
+from services.table.table_analyzer import TableAnalyzer
+from services.table.table_scrapper import TableScrapper
+from configs.config_manager import (
+    get_active_selection,
+    get_game_tick_rate,
+    get_platform_assets,
+    get_regions_category,
+    get_seat_centers,
+    load_config,
+    set_game_tick_rate,
+)
+
+
+class GameSession:
+
+    def __init__(self, platform=None, game_format=None, debug_mode=False):
+        self.config = load_config()
+        selected_platform, selected_format = get_active_selection(self.config)
+        self.platform = platform or selected_platform
+        self.game_format = game_format or selected_format
+        self.debug_mode = bool(debug_mode)
+        self.running = True
+        self.return_action = "exit_app"
+
+        assets = get_platform_assets(self.platform)
+        self.dealer_image = assets["dealer_image"]
+
+        self.button_pos = 0
+        self.btn_img_pos = 0
+        self.dealer_miss_count = 0
+        self.table_analyzer = TableAnalyzer()
+
+        self.paused = False
+        self.tick_rate_sec = get_game_tick_rate(self.config)
+        self.last_game_state = {
+            "sb_bet": "-",
+            "bb_bet": "-",
+            "pot": "-",
+            "board": "-",
+        }
+        self.latest_region_images = {}
+
+        self.table = TableScrapper(platform=self.platform, anchor_image=assets["anchor_image"])
+
+        seat_centers = get_seat_centers(self.game_format)
+        bet_regions_rel = get_regions_category(self.platform, self.game_format, "bet", self.config)
+        self.pot_regions_rel = get_regions_category(self.platform, self.game_format, "pot", self.config)
+        self.board_regions_rel = get_regions_category(self.platform, self.game_format, "board", self.config)
+
+        if len(bet_regions_rel) < len(seat_centers):
+            raise ValueError(
+                f"Calibration missing for {self.platform}/{self.game_format}. "
+                f"Expected {len(seat_centers)} bet regions, got {len(bet_regions_rel)}."
+            )
+
+        self.list = []
+        for i, center in enumerate(seat_centers):
+            rel = bet_regions_rel[i]
+            region_abs = self.to_absolute_region(rel)
+            player = Player(
+                self.table.get_left_edge() + center[0],
+                self.table.get_top_edge() + center[1],
+                region_abs,
+            )
+            self.list.append(player)
+
+        self.pot_regions_abs = [self.to_absolute_region(r) for r in self.pot_regions_rel]
+        self.board_regions_abs = [self.to_absolute_region(r) for r in self.board_regions_rel]
+
+        self.screenlist = [None] * len(self.list)
+        self.last_raw_screenlist = [None] * len(self.list)
+
+        self.overlay = None
+        self.debug_window = None
+
+        print(f"[Game] platform={self.platform} format={self.game_format} players={len(self.list)}")
+        print(f"[Game] dealer_image={self.dealer_image}")
+
+    def attach_ui(self, overlay=None, debug_window=None):
+        self.overlay = overlay
+        self.debug_window = debug_window
+
+    def _set_paused(self, paused: bool):
+        self.paused = bool(paused)
+        print(f"[Debug] paused={self.paused}")
+
+    def _set_tick_rate(self, value: float):
+        self.tick_rate_sec = float(value)
+        set_game_tick_rate(self.tick_rate_sec)
+        print(f"[Debug] tick_rate_sec={self.tick_rate_sec}")
+
+    def _request_back_to_main(self):
+        self.return_action = "back_to_main"
+        self.running = False
+        print("[Debug] returning to main screen")
+
+    def _request_exit_app(self):
+        self.return_action = "exit_app"
+        self.running = False
+        print("[Debug] exiting application")
+
+    def to_absolute_region(self, rel_region):
+        return relative_to_absolute_region(
+            self.table.get_left_edge(),
+            self.table.get_top_edge(),
+            rel_region,
+        )
+
+    def start(self):
+        while self.running:
+            if self.paused:
+                time.sleep(0.1)
+                continue
+
+            self.get_button_pos()
+            if not self.running:
+                break
+            self.get_table_state()
+            if not self.running:
+                break
+            if self.debug_window is not None:
+                state_snapshot = dict(self.last_game_state)
+                regions_snapshot = {
+                    key: (img.copy() if img is not None else None)
+                    for key, img in self.latest_region_images.items()
+                }
+                self.debug_window.push_update(state_snapshot, regions_snapshot)
+            time.sleep(self.tick_rate_sec)
+        if self.debug_window is not None:
+            self.debug_window.stop()
+        if self.overlay is not None:
+            self.overlay.stop()
+        return self.return_action
+
+    def _on_overlay_update(self, category, regions):
+        self.pot_regions_abs, self.board_regions_abs, updated_category = apply_runtime_regions(
+            category=category,
+            regions=regions,
+            players=self.list,
+            to_absolute_region=self.to_absolute_region,
+            pot_regions_abs=self.pot_regions_abs,
+            board_regions_abs=self.board_regions_abs,
+        )
+        if updated_category is not None:
+            print(f"[Overlay] {updated_category} regions refreshed in running game")
+
+    def get_table_state(self):
+        state, region_images = self.table_analyzer.extract_table_state(
+            players=self.list,
+            button_pos=self.button_pos,
+            pot_regions_abs=self.pot_regions_abs,
+            board_regions_abs=self.board_regions_abs,
+            overlay=self.overlay,
+            previous_state=self.last_game_state,
+        )
+        self.last_game_state = state
+        self.latest_region_images = region_images
+
+    def get_button_pos(self):
+        self.button_pos, self.btn_img_pos, self.dealer_miss_count = self.table_analyzer.update_button_position(
+            table=self.table,
+            dealer_image=self.dealer_image,
+            players=self.list,
+            btn_img_pos=self.btn_img_pos,
+            button_pos=self.button_pos,
+            dealer_miss_count=self.dealer_miss_count,
+        )
+
+    @staticmethod
+    def mouse_pos():
+        table = TableScrapper()
+        print(f" Table Edge Location - Left: '{table.get_left_edge()}' - Top: '{table.get_top_edge()}'")
+        x, y = pyautogui.position()
+        print(f" Mouse Location - {x, y}")
+
+
+# Backward-compatible alias for incremental migration.
+Game = GameSession

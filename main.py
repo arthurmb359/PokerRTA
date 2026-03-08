@@ -1,11 +1,12 @@
 ﻿import os
 import sys
 
-from Game import Game
+from controllers.game_session_controller import GameSessionController
 from ui import PokerSolverUI
 
 
 def main():
+    controller = GameSessionController()
     while True:
         app = PokerSolverUI()
         started, platform, game_format, debug_mode = app.run()
@@ -14,8 +15,11 @@ def main():
             print("[Main] closed without starting game.")
             return
 
-        game = Game(platform=platform, game_format=game_format, debug_mode=debug_mode)
-        action = game.start()
+        action = controller.run_once(
+            platform=platform,
+            game_format=game_format,
+            debug_mode=debug_mode,
+        )
 
         if action == "back_to_main":
             continue

@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import time
 
 import pyautogui
@@ -7,7 +7,6 @@ from configs.config_manager import get_platform_assets
 
 
 class TableScrapper:
-
     def __init__(self, platform="Suprema", anchor_image=None):
         self.platform = platform
         assets = get_platform_assets(platform)
@@ -28,7 +27,7 @@ class TableScrapper:
         self.y = location.top
 
     def check_on_screen(self, image_name, confidence=0.8, log_miss=True):
-        base_dir = Path(__file__).resolve().parent
+        base_dir = Path(__file__).resolve().parents[2]
         image_path = base_dir / "assets" / "images" / image_name
 
         try:
@@ -45,3 +44,4 @@ class TableScrapper:
 
     def get_top_edge(self):
         return self.y
+
