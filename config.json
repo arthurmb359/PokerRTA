@@ -1,6 +1,7 @@
 {
   "selected_platform": "Suprema",
   "selected_format": "HeadsUp",
+  "game_tick_rate_sec": 2.0,
   "calibrations": {
     "Suprema": {
       "HeadsUp": {

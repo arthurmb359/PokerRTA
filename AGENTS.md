@@ -1,84 +1,90 @@
 # AGENTS.md
 
 ## Projeto
-PokerTool é um assistente de poker online em tempo real.
-O sistema captura a mesa, identifica o estado da mão e consulta soluções previamente geradas no PioSolver.
+PokerTool is a real-time heads-up poker assistant.
+The system captures the poker table from the screen, identifies the current game state, and queries previously solved strategies generated with PioSolver.
+The goal is to provide strategic suggestions in real time based on solver outputs.
 
-## Objetivo principal
-Priorizar:
-1. precisão na leitura da mesa
-2. latência baixa
-3. código simples e modular
-4. facilidade de manutenção
+## Main Goals
+Priorities for this project:
+- High accuracy in table recognition
+- Low latency (real-time performance)
+- Clean and modular architecture
+- Maintainable and extensible codebase
 
-## Stack
+## Language Standard
+
+All development must be done in English. Do not mix Portuguese and English in the codebase.
+
+This includes:
+- Source code
+- Function names
+- Variable names
+- File names
+- Code comments
+- Documentation
+- Commit messages
+
+## Tech Stack
 - Python 3.13.12
 - VSCode
 - OpenCV
-- OCR para números/textos da mesa
-- arquivos solvados do PioSolver como fonte de decisão
+- OCR for numeric values (bets, stacks, pot)
+- PioSolver solved strategy files as the decision engine
 
 ## Como rodar
-Use sempre o ambiente virtual local do projeto.
+- Always use local .venv
 
 ### Windows
-Ativar venv:
+Activate venv:
 .venv\Scripts\Activate.ps1
 
-Rodar:
+Run Project:
 python main.py
 
 ## Estrutura esperada
-- `main.py`: ponto de entrada
-- `capture/`: captura da tela e ROIs (Regions Of Interest)
-- `recognition/`: leitura de board, stacks, bets e posição
-- `domain/`: modelos de estado da mão
-- `solver/`: lookup dos arquivos solvados
-- `ui/`: overlay e saída visual
+- main.py            → Entry point
+- capture/           → Screen capture and ROI extraction
+- recognition/       → Detection of board, stacks, bets, and positions
+- state/             → Game state models and poker domain objects
+- solver/            → Lookup and processing of solved PioSolver strategies
+- ui/                → Overlay and visual output
+- utils/             → Helper utilities
+- images/            → Images of static objets used for anchoring
 
-## Regras de arquitetura
-- Não misturar captura de tela com lógica de decisão.
-- Não colocar regra de solver dentro de arquivos de OCR.
-- Toda leitura da mesa deve retornar um objeto estruturado.
-- Toda consulta ao solver deve passar por uma camada de normalização de spot.
+## Architecture Rules
+- Do not mix screen capture logic with decision logic.
+- OCR and image recognition must stay isolated inside the recognition layer.
+- Solver lookup logic must remain inside the solver module.
+- Poker decision logic must not be mixed with UI code.
+- All table reads must return structured objects representing the game state.
 
-## Preferências de implementação
-- Preferir funções pequenas e legíveis.
-- Evitar classes grandes com múltiplas responsabilidades.
-- Evitar dependências desnecessárias.
-- Sempre que possível, separar código determinístico de código probabilístico.
-- Para cartas e elementos fixos da mesa, preferir template matching em vez de OCR genérico.
-- Para números variáveis como stack, pot e bet, OCR é permitido.
+## Implementation Preferences
+Prefer:
+- Small, focused functions
+- Clear and descriptive names
+- Modular code
+- Explicit data structures
+- Type hints where useful
+- dataclasses for simple structured data
+
+Avoid:
+- Large classes with multiple responsibilities
+- Hardcoded values scattered throughout the code
+- Complex nested logic
+- Premature optimization
 
 ## Performance
-Este projeto é sensível a latência.
-Ao sugerir código:
-- evitar loops desnecessários em tempo real
-- evitar recarregar arquivos grandes a cada frame
-- preferir cache e indexação
-- pensar em lookup rápido para boards e spots
+This project operates in real time. When implementing code:
+- Avoid heavy computations inside frame loops
+- Avoid repeatedly loading large files
+- Prefer caching and indexing strategies
+- Minimize disk access during gameplay
+- Keep detection pipelines lightweight
 
-## Convenções
-- nomes de arquivos em snake_case
-- nomes de funções descritivos
-- usar type hints quando fizer sentido
-- usar dataclasses para estados simples
-
-## Antes de editar código
-Sempre entender:
-1. de onde vem a imagem
-2. qual ROI está sendo usada
-3. qual estrutura representa o game state
-4. como o spot será mapeado para a solução do solver
-
-## O que evitar
-- mudanças grandes sem necessidade
-- refatorações amplas sem preservar comportamento
-- hardcode espalhado pelo projeto
-- lógica de poker misturada com lógica de interface
-
-## Saída esperada das mudanças
-Ao propor alterações:
-- explicar brevemente o motivo
-- preservar compatibilidade com o fluxo atual
-- sugerir código incremental, não reescrita total
+## What to Avoid
+- Large refactors without clear necessity
+- Mixing responsibilities across modules
+- Introducing unnecessary dependencies
+- Rewriting working code without justification
+- Hardcoding UI coordinates without calibration support

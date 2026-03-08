@@ -27,6 +27,7 @@ class PokerSolverUI:
         self.root.resizable(False, False)
 
         self.start_requested = False
+        self.debug_requested = False
         self.selected_platform = None
         self.selected_format = None
 
@@ -54,6 +55,7 @@ class PokerSolverUI:
         buttons.grid(row=2, column=0, columnspan=2, sticky="ew")
 
         ttk.Button(buttons, text="Configurações", command=self.open_settings).pack(side="left")
+        ttk.Button(buttons, text="Debug", command=self.start_debug).pack(side="right", padx=(0, 8))
         ttk.Button(buttons, text="Iniciar", command=self.start_program).pack(side="right")
 
         frame.columnconfigure(1, weight=1)
@@ -64,6 +66,18 @@ class PokerSolverUI:
         set_active_selection(platform, game_format)
 
         self.start_requested = True
+        self.debug_requested = False
+        self.selected_platform = platform
+        self.selected_format = game_format
+        self.root.destroy()
+
+    def start_debug(self):
+        platform = self.platform_var.get()
+        game_format = self.format_var.get()
+        set_active_selection(platform, game_format)
+
+        self.start_requested = True
+        self.debug_requested = True
         self.selected_platform = platform
         self.selected_format = game_format
         self.root.destroy()
@@ -218,7 +232,7 @@ class PokerSolverUI:
 
     def run(self):
         self.root.mainloop()
-        return self.start_requested, self.selected_platform, self.selected_format
+        return self.start_requested, self.selected_platform, self.selected_format, self.debug_requested
 
 
 if __name__ == "__main__":

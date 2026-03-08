@@ -28,6 +28,7 @@ PLATFORM_ASSETS = {
 DEFAULT_CONFIG = {
     "selected_platform": "Suprema",
     "selected_format": "HeadsUp",
+    "game_tick_rate_sec": 2.0,
     "calibrations": {
         "Suprema": {
             "HeadsUp": {
@@ -121,6 +122,22 @@ def set_active_selection(platform: str, game_format: str) -> dict:
     config = load_config()
     config["selected_platform"] = platform
     config["selected_format"] = game_format
+    save_config(config)
+    return config
+
+
+def get_game_tick_rate(config: dict | None = None) -> float:
+    cfg = config or load_config()
+    value = cfg.get("game_tick_rate_sec", 2.0)
+    try:
+        return float(value)
+    except Exception:
+        return 2.0
+
+
+def set_game_tick_rate(value: float) -> dict:
+    config = load_config()
+    config["game_tick_rate_sec"] = float(value)
     save_config(config)
     return config
 

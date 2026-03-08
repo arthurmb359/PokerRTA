@@ -17,6 +17,7 @@ class CalibrationOverlay:
 
         self._thread = None
         self._running = False
+        self._closed = threading.Event()
 
         self.root = None
         self.canvas = None
@@ -29,6 +30,7 @@ class CalibrationOverlay:
         if self._running:
             return
         self._running = True
+        self._closed.clear()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
@@ -85,7 +87,11 @@ class CalibrationOverlay:
         self.canvas.bind("<ButtonRelease-1>", self._on_release)
         self.root.bind_all("<Escape>", self._on_escape)
 
-        self.root.mainloop()
+        try:
+            self.root.mainloop()
+        finally:
+            self._running = False
+            self._closed.set()
 
     def _build_rectangles(self):
         self._draw_category("bet", "BET")
@@ -230,7 +236,38 @@ class CalibrationOverlay:
         self.drag_ctx = None
 
     def _on_escape(self, _event=None):
-        if self.root is not None:
-            self.root.destroy()
-            self.root = None
+        self._close_from_ui_thread()
+
+    def _close_from_ui_thread(self):
         self._running = False
+        if self.root is None:
+            return
+        try:
+            self.root.quit()
+        except Exception:
+            pass
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+        self.root = None
+
+    def stop(self):
+        self._running = False
+        if self.root is not None:
+            done = threading.Event()
+
+            def _close():
+                try:
+                    self._close_from_ui_thread()
+                finally:
+                    done.set()
+
+            try:
+                self.root.after(0, _close)
+                done.wait(0.8)
+            except Exception:
+                pass
+
+        if self._thread is not None and self._thread.is_alive():
+            self._thread.join(timeout=1.0)
