@@ -42,15 +42,21 @@ Activate venv:
 Run Project:
 python main.py
 
-## Estrutura esperada
-- main.py            → Entry point
-- capture/           → Screen capture and ROI extraction
-- recognition/       → Detection of board, stacks, bets, and positions
-- state/             → Game state models and poker domain objects
-- solver/            → Lookup and processing of solved PioSolver strategies
-- ui/                → Overlay and visual output
-- utils/             → Helper utilities
-- images/            → Images of static objets used for anchoring
+## Code structure
+- main.py                       → Entry point
+- app/
+    - controllers/              → Application flow and session orchestration
+    - domain/                   → Poker domain models and game state objects
+    - services/                 → Executes workflow
+        - capture/              → Screen capture
+        - table/                → Table geometry, anchors, calibration, region mapping
+        - recognition/          → Detection and reading of bets, board, stacks, positions
+    - solver/                   → Solver lookup and strategy processing
+    - ui/                       → Overlay and visual output
+    - configs/                  → App settings and calibration data
+    - assets/images/            → Static images, anchors, templates
+    - utils/                    → Small generic helpers only
+    - tests/                    → Automated tests
 
 ## Architecture Rules
 - Do not mix screen capture logic with decision logic.
