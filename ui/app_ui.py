@@ -2,7 +2,7 @@
 from tkinter import ttk, messagebox
 
 from TableScrapper import TableScrapper
-from config_manager import (
+from configs.config_manager import (
     FORMATS,
     PLATFORMS,
     get_active_selection,

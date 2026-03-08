@@ -2,7 +2,7 @@
 from pathlib import Path
 from copy import deepcopy
 
-CONFIG_PATH = Path("config.json")
+CONFIG_PATH = Path(__file__).resolve().with_name("config.json")
 
 PLATFORMS = ["PPPoker", "Suprema"]
 FORMATS = ["HeadsUp", "6-max"]

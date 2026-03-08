@@ -1,7 +1,7 @@
 ﻿import threading
 import tkinter as tk
 
-from config_manager import get_regions_category, set_calibration_category
+from configs.config_manager import get_regions_category, set_calibration_category
 
 
 class CalibrationOverlay:

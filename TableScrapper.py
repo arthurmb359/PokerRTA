@@ -1,7 +1,9 @@
-﻿import pyautogui
+﻿from pathlib import Path
 import time
 
-from config_manager import get_platform_assets
+import pyautogui
+
+from configs.config_manager import get_platform_assets
 
 
 class TableScrapper:
@@ -26,15 +28,16 @@ class TableScrapper:
         self.y = location.top
 
     def check_on_screen(self, image_name, confidence=0.8, log_miss=True):
-        image_path = "images/" + image_name
+        base_dir = Path(__file__).resolve().parent
+        image_path = base_dir / "assets" / "images" / image_name
 
         try:
-            location = pyautogui.locateOnScreen(image_path, confidence=confidence)
+            location = pyautogui.locateOnScreen(str(image_path), confidence=confidence)
             if location is None and log_miss:
-                print(f"[Screen] not found: {image_name}")
+                print(f"[Screen] not found: {image_name} ({image_path})")
             return location
         except Exception as exc:
-            print(f"[Screen] error locating {image_name}: {exc}")
+            print(f"[Screen] error locating {image_name} ({image_path}): {exc}")
             return None
 
     def get_left_edge(self):

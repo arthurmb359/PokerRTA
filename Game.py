@@ -8,9 +8,9 @@ from paddleocr import PaddleOCR
 
 from Player import Player
 from TableScrapper import TableScrapper
-from overlay import CalibrationOverlay
-from debug_ui import DebugWindow
-from config_manager import (
+from ui.overlay import CalibrationOverlay
+from ui.debug_ui import DebugWindow
+from configs.config_manager import (
     get_active_selection,
     get_game_tick_rate,
     get_platform_assets,

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-## Projeto
+## Project
 PokerTool is a real-time heads-up poker assistant.
 The system captures the poker table from the screen, identifies the current game state, and queries previously solved strategies generated with PioSolver.
 The goal is to provide strategic suggestions in real time based on solver outputs.
@@ -32,7 +32,7 @@ This includes:
 - OCR for numeric values (bets, stacks, pot)
 - PioSolver solved strategy files as the decision engine
 
-## Como rodar
+## How to run
 - Always use local .venv
 
 ### Windows
@@ -44,19 +44,28 @@ python main.py
 
 ## Code structure
 - main.py                       → Entry point
-- app/
-    - controllers/              → Application flow and session orchestration
-    - domain/                   → Poker domain models and game state objects
-    - services/                 → Executes workflow
-        - capture/              → Screen capture
-        - table/                → Table geometry, anchors, calibration, region mapping
-        - recognition/          → Detection and reading of bets, board, stacks, positions
-    - solver/                   → Solver lookup and strategy processing
-    - ui/                       → Overlay and visual output
-    - configs/                  → App settings and calibration data
-    - assets/images/            → Static images, anchors, templates
-    - utils/                    → Small generic helpers only
-    - tests/                    → Automated tests
+- controllers/              → Application flow and session orchestration
+- domain/                   → Poker domain models and game state objects
+- services/                 → Executes workflow
+    - capture/              → Screen capture
+    - table/                → Table geometry, anchors, calibration, region mapping
+    - recognition/          → Detection and reading of bets, board, stacks, positions
+- solver/                   → Solver lookup and strategy processing
+- ui/                       → Overlay and visual output
+- configs/                  → App settings and calibration data
+- assets/images/            → Static images, anchors, templates
+- utils/                    → Small generic helpers only
+- tests/                    → Automated tests
+
+
+## Refactoring rules:
+- Do not perform large rewrites in one step.
+- Refactor incrementally in small, testable steps.
+- Preserve behavior unless explicitly asked to change it.
+- Prefer moving code first, then improving internal design later.
+- After each refactoring step, keep imports working and the app runnable.
+- When moving files, update imports carefully and do not change unrelated logic.
+- Before deleting old code, make sure the new structure is working.
 
 ## Architecture Rules
 - Do not mix screen capture logic with decision logic.
@@ -74,7 +83,7 @@ Prefer:
 - Type hints where useful
 - dataclasses for simple structured data
 
-Avoid:
+## Avoid:
 - Large classes with multiple responsibilities
 - Hardcoded values scattered throughout the code
 - Complex nested logic
