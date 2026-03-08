@@ -19,10 +19,10 @@ CALIBRATION_CATEGORIES = {
 }
 
 
-class PokerSolverUI:
+class PokerRTAUI:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("PokerSolver")
+        self.root.title("PokerRTA")
         self.root.geometry("420x220")
         self.root.resizable(False, False)
 
@@ -236,5 +236,5 @@ class PokerSolverUI:
 
 
 if __name__ == "__main__":
-    app = PokerSolverUI()
+    app = PokerRTAUI()
     app.run()

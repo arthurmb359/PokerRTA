@@ -1,2 +1,2 @@
-from .app_ui import PokerSolverUI
+from .app_ui import PokerRTAUI
 

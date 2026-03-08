@@ -2,13 +2,13 @@
 import sys
 
 from controllers.game_session_controller import GameSessionController
-from ui import PokerSolverUI
+from ui import PokerRTAUI
 
 
 def main():
     controller = GameSessionController()
     while True:
-        app = PokerSolverUI()
+        app = PokerRTAUI()
         started, platform, game_format, debug_mode = app.run()
 
         if not started:
