@@ -11,10 +11,7 @@ class Player:
     def set_player_pos(self, btn, player, total_players=6):
         # Heads-up: dealer/button is always SB, the other player is BB.
         if total_players == 2:
-            if (btn == 0):
-                self.position = "SB"
-            else:
-                self.position = "BB"
+            self.position = "SB" if player == btn else "BB"
             return
 
         if (player - btn == 0):
@@ -31,4 +28,3 @@ class Player:
             self.position = "SB"
         else:
             print("BUG")
-

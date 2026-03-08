@@ -29,12 +29,12 @@ Rodar:
 python main.py
 
 ## Estrutura esperada
-<!-- - `main.py`: ponto de entrada
-- `capture/`: captura da tela e ROIs
+- `main.py`: ponto de entrada
+- `capture/`: captura da tela e ROIs (Regions Of Interest)
 - `recognition/`: leitura de board, stacks, bets e posição
 - `domain/`: modelos de estado da mão
 - `solver/`: lookup dos arquivos solvados
-- `ui/`: overlay e saída visual -->
+- `ui/`: overlay e saída visual
 
 ## Regras de arquitetura
 - Não misturar captura de tela com lógica de decisão.

@@ -10,10 +10,11 @@ from paddleocr import PaddleOCR
 
 from Player import Player
 from TableScrapper import TableScrapper
+from overlay import CalibrationOverlay
 from config_manager import (
     get_active_selection,
     get_platform_assets,
-    get_regions,
+    get_regions_category,
     get_seat_centers,
     load_config,
 )
@@ -41,7 +42,7 @@ class Game:
         self.table = TableScrapper(platform=self.platform, anchor_image=assets["anchor_image"])
 
         seat_centers = get_seat_centers(self.game_format)
-        bet_regions_rel = get_regions(self.platform, self.game_format, self.config)
+        bet_regions_rel = get_regions_category(self.platform, self.game_format, "bet", self.config)
 
         if len(bet_regions_rel) < len(seat_centers):
             raise ValueError(
@@ -63,6 +64,15 @@ class Game:
         self.screenlist = [None] * len(self.list)
         self.last_raw_screenlist = [None] * len(self.list)
 
+        self.overlay = CalibrationOverlay(
+            self.platform,
+            self.game_format,
+            self.table.get_left_edge(),
+            self.table.get_top_edge(),
+            on_update=self._on_overlay_update,
+        )
+        self.overlay.start()
+
         print(f"[Game] platform={self.platform} format={self.game_format} players={len(self.list)}")
         print(f"[Game] dealer_image={self.dealer_image}")
 
@@ -73,13 +83,28 @@ class Game:
         x1, y1, x2, y2 = rel_region
         width = max(1, x2 - x1)
         height = max(1, y2 - y1)
-        return left + x1, top + y1, width, height
+        return (
+            int(left + x1),
+            int(top + y1),
+            int(width),
+            int(height),
+        )
 
     def start(self):
         while True:
             self.get_button_pos()
             self.get_table_state()
             time.sleep(2)
+
+    def _on_overlay_update(self, category, regions):
+        if category != "bet":
+            return
+
+        for i, rel in enumerate(regions):
+            if i >= len(self.list):
+                break
+            self.list[i].bet_region = self.to_absolute_region(rel)
+        print("[Overlay] bet regions refreshed in running game")
 
     def get_table_state(self):
         total_players = len(self.list)
@@ -128,7 +153,14 @@ class Game:
             print(f"[Dealer] button changed -> player={self.button_pos}")
 
     def read_image(self, region, i):
-        raw_pil = pyautogui.screenshot(region=region)
+        region = (int(region[0]), int(region[1]), int(region[2]), int(region[3]))
+        if self.overlay is not None:
+            self.overlay.set_visible(False)
+        try:
+            raw_pil = pyautogui.screenshot(region=region)
+        finally:
+            if self.overlay is not None:
+                self.overlay.set_visible(True)
         raw_np = np.array(raw_pil)
         gray = cv2.cvtColor(raw_np, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(gray, 160, 255, cv2.THRESH_BINARY)

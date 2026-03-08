@@ -6,13 +6,17 @@ from config_manager import (
     FORMATS,
     PLATFORMS,
     get_active_selection,
-    get_calibration,
     get_seat_centers,
     load_config,
-    save_config,
     set_active_selection,
-    set_calibration,
+    set_calibration_category,
 )
+
+CALIBRATION_CATEGORIES = {
+    "bet": "Bet",
+    "pot": "Pote",
+    "board": "Board",
+}
 
 
 class PokerSolverUI:
@@ -49,7 +53,7 @@ class PokerSolverUI:
         buttons = ttk.Frame(frame)
         buttons.grid(row=2, column=0, columnspan=2, sticky="ew")
 
-        ttk.Button(buttons, text="Configuracoes", command=self.open_settings).pack(side="left")
+        ttk.Button(buttons, text="Configurações", command=self.open_settings).pack(side="left")
         ttk.Button(buttons, text="Iniciar", command=self.start_program).pack(side="right")
 
         frame.columnconfigure(1, weight=1)
@@ -66,7 +70,7 @@ class PokerSolverUI:
 
     def open_settings(self):
         settings = tk.Toplevel(self.root)
-        settings.title("Configuracoes")
+        settings.title("Configurações")
         settings.geometry("460x250")
         settings.resizable(False, False)
 
@@ -86,35 +90,38 @@ class PokerSolverUI:
 
         info = ttk.Label(
             frame,
-            text="Calibracao: clique topo-esquerdo e depois fundo-direito para cada player.",
+            text="Calibração: escolha a categoria e clique topo-esquerdo e fundo-direito.",
             wraplength=420,
             foreground="#333333",
         )
         info.grid(row=2, column=0, columnspan=2, sticky="w", pady=(0, 12))
 
-        def do_calibrate():
+        def do_calibrate(category: str):
             platform = platform_var.get()
             game_format = format_var.get()
-            self.run_calibration(platform, game_format)
-
-        def save_and_close():
-            self.platform_var.set(platform_var.get())
-            self.format_var.set(format_var.get())
-            set_active_selection(self.platform_var.get(), self.format_var.get())
-            settings.destroy()
+            self.run_calibration(platform, game_format, category)
 
         actions = ttk.Frame(frame)
         actions.grid(row=3, column=0, columnspan=2, sticky="ew")
-        ttk.Button(actions, text="Calibrar", command=do_calibrate).pack(side="left")
-        ttk.Button(actions, text="Salvar", command=save_and_close).pack(side="right")
+        ttk.Button(actions, text="Calibrar Bet", command=lambda: do_calibrate("bet")).pack(side="left")
+        ttk.Button(actions, text="Calibrar Pote", command=lambda: do_calibrate("pot")).pack(side="left", padx=(8, 0))
+        ttk.Button(actions, text="Calibrar Board", command=lambda: do_calibrate("board")).pack(side="left", padx=(8, 0))
+        ttk.Button(actions, text="Fechar", command=settings.destroy).pack(side="right")
 
         frame.columnconfigure(1, weight=1)
 
-    def run_calibration(self, platform: str, game_format: str):
-        player_count = len(get_seat_centers(game_format))
+    def run_calibration(self, platform: str, game_format: str, category: str):
+        if category == "bet":
+            target_count = len(get_seat_centers(game_format))
+            target_name = "player"
+        else:
+            target_count = 1
+            target_name = category
+
+        category_label = CALIBRATION_CATEGORIES.get(category, category)
         messagebox.showinfo(
             "Calibracao",
-            f"Vamos calibrar {player_count} players para {platform} / {game_format}.\n"
+            f"Vamos calibrar {target_count} região(ões) de {category_label} para {platform} / {game_format}.\n"
             "Primeiro localize a mesa e deixe-a visivel.",
             parent=self.root,
         )
@@ -125,32 +132,45 @@ class PokerSolverUI:
         print(f"[Calibration] table edge=({left_edge}, {top_edge})")
 
         calibrated_regions = []
-        for index in range(player_count):
+        for index in range(target_count):
+            if category == "bet":
+                display_name = f"Player {index + 1}/{target_count}"
+            else:
+                display_name = f"{category_label} {index + 1}/{target_count}"
+
             p1 = self.capture_click(
-                f"Player {index + 1}/{player_count}: clique no TOPO ESQUERDO da regiao de bet"
+                f"{display_name}: clique no TOPO ESQUERDO da região"
             )
             if p1 is None:
-                messagebox.showwarning("Calibracao", "Calibracao cancelada.", parent=self.root)
+                messagebox.showwarning("Calibração", "Calibração cancelada.", parent=self.root)
                 return
 
             p2 = self.capture_click(
-                f"Player {index + 1}/{player_count}: clique no FUNDO DIREITO da regiao de bet"
+                f"{display_name}: clique no FUNDO DIREITO da região"
             )
             if p2 is None:
-                messagebox.showwarning("Calibracao", "Calibracao cancelada.", parent=self.root)
+                messagebox.showwarning("Calibração", "Calibração cancelada.", parent=self.root)
                 return
 
             x1, y1 = min(p1[0], p2[0]), min(p1[1], p2[1])
             x2, y2 = max(p1[0], p2[0]), max(p1[1], p2[1])
 
-            rel = [x1 - left_edge, y1 - top_edge, x2 - left_edge, y2 - top_edge]
+            rel = [
+                int(x1 - left_edge),
+                int(y1 - top_edge),
+                int(x2 - left_edge),
+                int(y2 - top_edge),
+            ]
             calibrated_regions.append(rel)
-            print(f"[Calibration] player={index} abs=({x1},{y1},{x2},{y2}) rel={rel}")
+            print(f"[Calibration] category={category} idx={index} abs=({x1},{y1},{x2},{y2}) rel={rel}")
 
-        set_calibration(platform, game_format, calibrated_regions)
+        set_calibration_category(platform, game_format, category, calibrated_regions)
+        set_active_selection(platform, game_format)
+        self.platform_var.set(platform)
+        self.format_var.set(game_format)
         messagebox.showinfo(
-            "Calibracao",
-            f"Calibracao salva com sucesso para {platform} / {game_format}.",
+            "Calibração",
+            f"Calibração de {category_label} salva com sucesso para {platform} / {game_format}.",
             parent=self.root,
         )
 
@@ -181,9 +201,18 @@ class PokerSolverUI:
             overlay.destroy()
 
         overlay.bind("<Button-1>", on_click)
-        overlay.bind("<Escape>", on_cancel)
+        # Use bind_all + forced focus so ESC works consistently on fullscreen overlay.
+        overlay.bind_all("<Escape>", on_cancel)
         overlay.grab_set()
-        self.root.wait_window(overlay)
+        overlay.focus_force()
+        overlay.lift()
+        try:
+            self.root.wait_window(overlay)
+        finally:
+            try:
+                overlay.unbind_all("<Escape>")
+            except Exception:
+                pass
 
         return point["value"]
 
