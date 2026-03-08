@@ -38,6 +38,22 @@ This includes:
 
 ---
 
+## Change Application Rules
+
+When modifying code, always prefer editor-applied, reviewable changes.
+
+Rules:
+- Always make small, incremental changes.
+- Prefer the smallest possible diff.
+- Do not perform large rewrites in one step.
+- Do not mix file moves, renames, deletes, and logic refactors in the same step.
+- Keep changes easy to review in the VSCode review pane.
+- Avoid aggressive terminal-based bulk rewrites when a normal code edit is sufficient.
+- Preserve Git-reviewable changes whenever possible.
+- After each task, summarize modified files and expected manual tests.
+
+---
+
 # Tech Stack
 
 - Python 3.13.12

@@ -2,11 +2,6 @@
 
 import pyautogui
 
-from domain.player import Player
-from services.table.calibration_service import apply_runtime_regions
-from services.table.region_mapper import relative_to_absolute_region
-from services.table.table_analyzer import TableAnalyzer
-from services.table.table_scrapper import TableScrapper
 from configs.config_manager import (
     get_active_selection,
     get_game_tick_rate,
@@ -16,6 +11,12 @@ from configs.config_manager import (
     load_config,
     set_game_tick_rate,
 )
+from controllers.session_action import SessionAction
+from domain.player import Player
+from services.table.calibration_service import apply_runtime_regions
+from services.table.region_mapper import relative_to_absolute_region
+from services.table.table_analyzer import TableAnalyzer
+from services.table.table_scrapper import TableScrapper
 
 
 class GameSession:
@@ -27,7 +28,7 @@ class GameSession:
         self.game_format = game_format or selected_format
         self.debug_mode = bool(debug_mode)
         self.running = True
-        self.return_action = "exit_app"
+        self.return_action = SessionAction.EXIT_APP
 
         assets = get_platform_assets(self.platform)
         self.dealer_image = assets["dealer_image"]
@@ -97,12 +98,12 @@ class GameSession:
         print(f"[Debug] tick_rate_sec={self.tick_rate_sec}")
 
     def _request_back_to_main(self):
-        self.return_action = "back_to_main"
+        self.return_action = SessionAction.BACK_TO_MAIN
         self.running = False
         print("[Debug] returning to main screen")
 
     def _request_exit_app(self):
-        self.return_action = "exit_app"
+        self.return_action = SessionAction.EXIT_APP
         self.running = False
         print("[Debug] exiting application")
 
@@ -113,7 +114,7 @@ class GameSession:
             rel_region,
         )
 
-    def start(self):
+    def start(self) -> SessionAction:
         while self.running:
             if self.paused:
                 time.sleep(0.1)
