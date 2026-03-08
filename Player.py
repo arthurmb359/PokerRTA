@@ -8,7 +8,15 @@ class Player:
         self.bet_region = bet_region
         self.position = ""
 
-    def set_player_pos(self, btn, player):
+    def set_player_pos(self, btn, player, total_players=6):
+        # Heads-up: dealer/button is always SB, the other player is BB.
+        if total_players == 2:
+            if (btn == 0):
+                self.position = "SB"
+            else:
+                self.position = "BB"
+            return
+
         if (player - btn == 0):
             self.position = "BTN"
         elif (player - btn == 5 or player - btn == -1):
