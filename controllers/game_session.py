@@ -3,7 +3,6 @@
 import pyautogui
 
 from configs.config_manager import set_game_tick_rate
-from controllers.session_action import SessionAction
 from services.table.calibration_service import apply_runtime_regions
 from services.table.region_mapper import relative_to_absolute_region
 from services.table.table_analyzer import TableAnalyzer
@@ -18,7 +17,6 @@ class GameSession:
         self.game_format = setup.game_format
         self.debug_mode = setup.debug_mode
         self.running = True
-        self.return_action = SessionAction.EXIT_APP
 
         self.dealer_image = setup.dealer_image
 
@@ -61,20 +59,20 @@ class GameSession:
         self.paused = bool(paused)
         print(f"[Debug] paused={self.paused}")
 
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False
+
+    def stop(self):
+        self.running = False
+        self.paused = False
+
     def _set_tick_rate(self, value: float):
         self.tick_rate_sec = float(value)
         set_game_tick_rate(self.tick_rate_sec)
         print(f"[Debug] tick_rate_sec={self.tick_rate_sec}")
-
-    def _request_back_to_main(self):
-        self.return_action = SessionAction.BACK_TO_MAIN
-        self.running = False
-        print("[Debug] returning to main screen")
-
-    def _request_exit_app(self):
-        self.return_action = SessionAction.EXIT_APP
-        self.running = False
-        print("[Debug] exiting application")
 
     def to_absolute_region(self, rel_region):
         return relative_to_absolute_region(
@@ -83,7 +81,7 @@ class GameSession:
             rel_region,
         )
 
-    def start(self) -> SessionAction:
+    def start(self) -> None:
         while self.running:
             if self.paused:
                 time.sleep(0.1)
@@ -103,11 +101,6 @@ class GameSession:
                 }
                 self.debug_window.push_update(state_snapshot, regions_snapshot)
             time.sleep(self.tick_rate_sec)
-        if self.debug_window is not None:
-            self.debug_window.stop()
-        if self.overlay is not None:
-            self.overlay.stop()
-        return self.return_action
 
     def _on_overlay_update(self, category, regions):
         self.pot_regions_abs, self.board_regions_abs, updated_category = apply_runtime_regions(

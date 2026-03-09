@@ -216,6 +216,11 @@ class DebugWindow:
 
     def stop(self):
         self._running = False
+
+        if threading.current_thread() is self._thread:
+            self._close_from_ui_thread()
+            return
+
         if self.root is not None:
             done = threading.Event()
 
@@ -231,5 +236,6 @@ class DebugWindow:
             except Exception:
                 pass
 
-        if self._thread is not None and self._thread.is_alive():
+        if self._thread is not None and self._thread.is_alive() and threading.current_thread() is not self._thread:
             self._thread.join(timeout=1.0)
+
