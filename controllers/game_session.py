@@ -2,17 +2,8 @@
 
 import pyautogui
 
-from configs.config_manager import (
-    get_active_selection,
-    get_game_tick_rate,
-    get_platform_assets,
-    get_regions_category,
-    get_seat_centers,
-    load_config,
-    set_game_tick_rate,
-)
+from configs.config_manager import set_game_tick_rate
 from controllers.session_action import SessionAction
-from domain.player import Player
 from services.table.calibration_service import apply_runtime_regions
 from services.table.region_mapper import relative_to_absolute_region
 from services.table.table_analyzer import TableAnalyzer
@@ -21,17 +12,15 @@ from services.table.table_scrapper import TableScrapper
 
 class GameSession:
 
-    def __init__(self, platform=None, game_format=None, debug_mode=False):
-        self.config = load_config()
-        selected_platform, selected_format = get_active_selection(self.config)
-        self.platform = platform or selected_platform
-        self.game_format = game_format or selected_format
-        self.debug_mode = bool(debug_mode)
+    def __init__(self, setup):
+        self.config = setup.config
+        self.platform = setup.platform
+        self.game_format = setup.game_format
+        self.debug_mode = setup.debug_mode
         self.running = True
         self.return_action = SessionAction.EXIT_APP
 
-        assets = get_platform_assets(self.platform)
-        self.dealer_image = assets["dealer_image"]
+        self.dealer_image = setup.dealer_image
 
         self.button_pos = 0
         self.btn_img_pos = 0
@@ -39,7 +28,7 @@ class GameSession:
         self.table_analyzer = TableAnalyzer()
 
         self.paused = False
-        self.tick_rate_sec = get_game_tick_rate(self.config)
+        self.tick_rate_sec = setup.tick_rate_sec
         self.last_game_state = {
             "sb_bet": "-",
             "bb_bet": "-",
@@ -48,32 +37,12 @@ class GameSession:
         }
         self.latest_region_images = {}
 
-        self.table = TableScrapper(platform=self.platform, anchor_image=assets["anchor_image"])
-
-        seat_centers = get_seat_centers(self.game_format)
-        bet_regions_rel = get_regions_category(self.platform, self.game_format, "bet", self.config)
-        self.pot_regions_rel = get_regions_category(self.platform, self.game_format, "pot", self.config)
-        self.board_regions_rel = get_regions_category(self.platform, self.game_format, "board", self.config)
-
-        if len(bet_regions_rel) < len(seat_centers):
-            raise ValueError(
-                f"Calibration missing for {self.platform}/{self.game_format}. "
-                f"Expected {len(seat_centers)} bet regions, got {len(bet_regions_rel)}."
-            )
-
-        self.list = []
-        for i, center in enumerate(seat_centers):
-            rel = bet_regions_rel[i]
-            region_abs = self.to_absolute_region(rel)
-            player = Player(
-                self.table.get_left_edge() + center[0],
-                self.table.get_top_edge() + center[1],
-                region_abs,
-            )
-            self.list.append(player)
-
-        self.pot_regions_abs = [self.to_absolute_region(r) for r in self.pot_regions_rel]
-        self.board_regions_abs = [self.to_absolute_region(r) for r in self.board_regions_rel]
+        self.table = setup.table
+        self.list = setup.players
+        self.pot_regions_rel = setup.pot_regions_rel
+        self.board_regions_rel = setup.board_regions_rel
+        self.pot_regions_abs = setup.pot_regions_abs
+        self.board_regions_abs = setup.board_regions_abs
 
         self.screenlist = [None] * len(self.list)
         self.last_raw_screenlist = [None] * len(self.list)

@@ -1,12 +1,15 @@
-﻿from controllers.game_session import GameSession
+﻿from controllers.game_session_builder import GameSessionBuilder
 from controllers.session_action import SessionAction
 from ui.debug_ui import DebugWindow
 from ui.overlay import CalibrationOverlay
 
 
 class GameSessionController:
+    def __init__(self):
+        self.builder = GameSessionBuilder()
+
     def run_once(self, platform: str, game_format: str, debug_mode: bool) -> SessionAction:
-        game = GameSession(platform=platform, game_format=game_format, debug_mode=debug_mode)
+        game = self.builder.build(platform=platform, game_format=game_format, debug_mode=debug_mode)
 
         overlay = CalibrationOverlay(
             game.platform,
