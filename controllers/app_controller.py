@@ -1,6 +1,7 @@
-﻿import os
+import os
 import sys
 
+from configs.config_manager import get_active_selection, load_config
 from controllers.game_session_controller import GameSessionController
 from services.recognition.ocr_service import OCRService
 from ui import PokerToolUI
@@ -20,6 +21,8 @@ class AppController:
             on_exit_app=self._request_exit_app,
         )
         self.ui.call_soon(OCRService.warmup_async, "en")
+        # Keep the main window available, but start in Debug until gameplay is fully functional.
+        self.ui.call_soon(self._start_in_debug_mode)
 
     def _on_start_run(self, platform: str, game_format: str):
         self.ui.hide()
@@ -32,6 +35,13 @@ class AppController:
     def _on_menu_exit(self):
         print("[Main] closed without starting game.")
         self._request_exit_app()
+
+    def _start_in_debug_mode(self):
+        if self._shutting_down:
+            return
+        config = load_config()
+        platform, game_format = get_active_selection(config)
+        self._on_start_debug(platform, game_format)
 
     def _request_back_to_main(self):
         print("[UI] scheduling main menu show")

@@ -30,8 +30,7 @@ class GameSession:
         self.paused = False
         self.tick_rate_sec = setup.tick_rate_sec
         self.last_game_state = {
-            "sb_bet": "-",
-            "bb_bet": "-",
+            "position_bets": {},
             "pot": "-",
             "board": "-",
         }
@@ -97,8 +96,7 @@ class GameSession:
                 break
             if self.debug_window is not None:
                 state_snapshot = DebugStateSnapshot(
-                    sb_bet=self.last_game_state.get("sb_bet", "-"),
-                    bb_bet=self.last_game_state.get("bb_bet", "-"),
+                    position_bets=dict(self.last_game_state.get("position_bets", {})),
                     pot=self.last_game_state.get("pot", "-"),
                     board=self.last_game_state.get("board", "-"),
                 )

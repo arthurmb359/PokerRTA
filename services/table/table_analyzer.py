@@ -43,11 +43,13 @@ class TableAnalyzer:
         latest_region_images = {}
         total_players = len(players)
         any_bet = False
+        position_bets = {}
 
         for i in range(total_players):
             players[i].set_player_pos(button_pos, i, total_players)
             value = self._read_bet(players[i].bet_region, f"bet_{i}", overlay, latest_region_images)
             players[i].bet_size = value
+            position_bets[players[i].position] = self._format_value(players[i].bet_size)
 
             if isinstance(players[i].bet_size, float):
                 print(f" Position: '{players[i].position}' - Bet: '{players[i].bet_size}'")
@@ -63,26 +65,11 @@ class TableAnalyzer:
         if board_regions_abs:
             board_text = self._read_board(board_regions_abs[0], "board_0", overlay, latest_region_images)
 
-        sb_bet = next((p.bet_size for p in players if p.position == "SB" and isinstance(p.bet_size, float)), "-")
-        bb_bet = next((p.bet_size for p in players if p.position == "BB" and isinstance(p.bet_size, float)), "-")
-
-        sb_str = self._format_value(sb_bet)
-        bb_str = self._format_value(bb_bet)
         pot_str = self._format_value(pot_value)
         board_str = board_text if board_text else "-"
 
-        if sb_str == "-":
-            sb_str = previous_state.get("sb_bet", "-")
-        if bb_str == "-":
-            bb_str = previous_state.get("bb_bet", "-")
-        if pot_str == "-":
-            pot_str = previous_state.get("pot", "-")
-        if board_str == "-":
-            board_str = previous_state.get("board", "-")
-
         state = {
-            "sb_bet": sb_str,
-            "bb_bet": bb_str,
+            "position_bets": position_bets,
             "pot": pot_str,
             "board": board_str,
         }
@@ -120,4 +107,3 @@ class TableAnalyzer:
         if isinstance(value, float):
             return f"{value:.2f}"
         return "-"
-

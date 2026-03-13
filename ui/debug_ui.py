@@ -8,6 +8,11 @@ from ui.tk_thread import capture_ui_thread_id, run_on_ui_thread
 
 
 class DebugWindow:
+    POSITION_ORDERS = {
+        "HeadsUp": ("SB", "BB"),
+        "6-max": ("SB", "BB", "UTG", "HJ", "CO", "BTN"),
+    }
+
     def __init__(
         self,
         parent,
@@ -42,6 +47,8 @@ class DebugWindow:
         self.platform_combo = None
         self.format_combo = None
         self.state_vars = {}
+        self.state_value_labels = []
+        self.state_box = None
         self.region_frame = None
         self.region_widgets = {}
         self.region_images = {}
@@ -87,23 +94,12 @@ class DebugWindow:
         self.platform_combo.bind("<<ComboboxSelected>>", self._apply_game_config)
         self.format_combo.bind("<<ComboboxSelected>>", self._apply_game_config)
 
-        state_box = ttk.LabelFrame(outer, text="Game State", padding=10)
-        state_box.pack(fill="x", pady=(10, 0))
+        self.state_box = ttk.LabelFrame(outer, text="Game State", padding=10)
+        self.state_box.pack(fill="x", pady=(10, 0))
 
-        self.state_vars["sb_bet"] = tk.StringVar(value="-")
-        self.state_vars["bb_bet"] = tk.StringVar(value="-")
         self.state_vars["pot"] = tk.StringVar(value="-")
         self.state_vars["board"] = tk.StringVar(value="-")
-
-        ttk.Label(state_box, text="SB Bet:").grid(row=0, column=0, sticky="w")
-        ttk.Label(state_box, textvariable=self.state_vars["sb_bet"]).grid(row=0, column=1, sticky="w", padx=(4, 16))
-        ttk.Label(state_box, text="BB Bet:").grid(row=0, column=2, sticky="w")
-        ttk.Label(state_box, textvariable=self.state_vars["bb_bet"]).grid(row=0, column=3, sticky="w", padx=(4, 16))
-        ttk.Label(state_box, text="Pot:").grid(row=0, column=4, sticky="w")
-        ttk.Label(state_box, textvariable=self.state_vars["pot"]).grid(row=0, column=5, sticky="w", padx=(4, 16))
-
-        ttk.Label(state_box, text="Board:").grid(row=1, column=0, sticky="w", pady=(8, 0))
-        ttk.Label(state_box, textvariable=self.state_vars["board"]).grid(row=1, column=1, columnspan=5, sticky="w", pady=(8, 0))
+        self._build_state_fields(self.initial_format)
 
         controls = ttk.Frame(outer)
         controls.pack(fill="x", pady=(10, 10))
@@ -150,6 +146,7 @@ class DebugWindow:
 
     def _apply_game_config(self, _event=None):
         # UI-thread-only: emits selected platform/format to the controller.
+        self._build_state_fields(self.format_var.get())
         self.on_game_config_changed(self.platform_var.get(), self.format_var.get())
 
     def _poll_updates(self):
@@ -167,8 +164,8 @@ class DebugWindow:
         if self.root is None:
             return
         state = payload.state
-        self.state_vars["sb_bet"].set(state.sb_bet)
-        self.state_vars["bb_bet"].set(state.bb_bet)
+        for position in self._position_order(self.format_var.get()):
+            self.state_vars[position].set(state.position_bets.get(position, "-"))
         self.state_vars["pot"].set(state.pot)
         self.state_vars["board"].set(state.board)
 
@@ -234,6 +231,44 @@ class DebugWindow:
         col = idx % 4
         self.dynamic_positions[key] = (row, col)
         return row, col
+
+    def _build_state_fields(self, game_format):
+        for widget in self.state_value_labels:
+            widget.destroy()
+        self.state_value_labels = []
+
+        for position in self._position_order(game_format):
+            self.state_vars.setdefault(position, tk.StringVar(value="-"))
+
+        row = 0
+        col = 0
+        for position in self._position_order(game_format):
+            label = ttk.Label(self.state_box, text=f"{position} Bet:")
+            label.grid(row=row, column=col, sticky="w")
+            value_label = ttk.Label(self.state_box, textvariable=self.state_vars[position])
+            value_label.grid(row=row, column=col + 1, sticky="w", padx=(4, 16))
+            self.state_value_labels.extend([label, value_label])
+            col += 2
+            if col >= 6:
+                row += 1
+                col = 0
+
+        row += 1
+        pot_label = ttk.Label(self.state_box, text="Pot:")
+        pot_label.grid(row=row, column=0, sticky="w", pady=(8, 0))
+        pot_value = ttk.Label(self.state_box, textvariable=self.state_vars["pot"])
+        pot_value.grid(row=row, column=1, sticky="w", padx=(4, 16), pady=(8, 0))
+        self.state_value_labels.extend([pot_label, pot_value])
+
+        board_label = ttk.Label(self.state_box, text="Board:")
+        board_label.grid(row=row, column=2, sticky="w", pady=(8, 0))
+        board_value = ttk.Label(self.state_box, textvariable=self.state_vars["board"])
+        board_value.grid(row=row, column=3, columnspan=3, sticky="w", pady=(8, 0))
+        self.state_value_labels.extend([board_label, board_value])
+
+    def _position_order(self, game_format):
+        normalized_format = (game_format or "").strip()
+        return self.POSITION_ORDERS.get(normalized_format, self.POSITION_ORDERS["HeadsUp"])
 
     def push_update(self, payload: DebugUpdateSnapshot):
         # Runtime-thread-safe: enqueue-only, no Tk access here.
