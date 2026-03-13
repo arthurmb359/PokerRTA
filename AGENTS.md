@@ -83,6 +83,74 @@ Each layer has a clear responsibility and must not mix concerns.
 
 ---
 
+# Semantic Versioning (SemVer)
+
+This project follows the Semantic Versioning model: vMAJOR.MINOR.PATCH
+
+Version format:
+vMAJOR.MINOR.PATCH
+
+Example:
+v1.4.2
+
+Meaning of each component:
+
+MAJOR
+Increment when making incompatible or breaking changes.
+This includes architectural changes, API changes, or behavior changes that break compatibility with previous versions.
+
+Examples:
+- Major architectural refactor
+- Changes to core APIs
+- Changes to solver interface or data format
+- Changes that require adapting other parts of the system
+
+Example:
+v1.2.3 → v2.0.0
+
+MINOR
+Increment when adding new functionality in a backward-compatible way.
+
+Examples:
+- New features
+- New modules
+- New UI tools
+- New detection capabilities
+- Solver integration improvements
+
+Example:
+v1.2.0 → v1.3.0
+
+PATCH
+Increment when making backward-compatible bug fixes or small improvements.
+
+Examples:
+- Bug fixes
+- Stability improvements
+- Small UI fixes
+- Minor performance improvements
+- Small refactors that do not change behavior
+
+Example:
+v1.3.1 → v1.3.2
+
+Example development progression:
+v0.1.0  initial runtime engine
+v0.2.0  OCR pipeline
+v0.3.0  table detection
+v0.4.0  overlay system
+v0.5.0  debug tools
+v0.6.0  solver integration
+v0.7.0  performance improvements
+v0.8.0  architecture stabilization
+v0.9.0  near-production
+v1.0.0  first stable release
+
+General rule:
+MAJOR → breaking changes
+MINOR → new functionality
+PATCH → bug fixes
+
 # Code Structure
 
 main.py → Entry point
