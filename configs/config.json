@@ -1,6 +1,6 @@
 {
   "selected_platform": "Suprema",
-  "selected_format": "6-max",
+  "selected_format": "HeadsUp",
   "game_tick_rate_sec": 2.0,
   "calibrations": {
     "Suprema": {
@@ -8,22 +8,22 @@
         "bet": [
           [
             227,
-            729,
-            342,
+            734,
+            338,
             760
           ],
           [
             317,
-            160,
-            423,
+            167,
+            408,
             191
           ]
         ],
         "pot": [
           [
-            221,
+            224,
             329,
-            336,
+            339,
             356
           ]
         ],

@@ -99,6 +99,7 @@ class DebugWindow:
 
         self.state_vars["pot"] = tk.StringVar(value="-")
         self.state_vars["board"] = tk.StringVar(value="-")
+        self.state_vars["street"] = tk.StringVar(value="-")
         self._build_state_fields(self.initial_format)
 
         controls = ttk.Frame(outer)
@@ -166,6 +167,7 @@ class DebugWindow:
         state = payload.state
         for position in self._position_order(self.format_var.get()):
             self.state_vars[position].set(state.position_bets.get(position, "-"))
+        self.state_vars["street"].set(state.street)
         self.state_vars["pot"].set(state.pot)
         self.state_vars["board"].set(state.board)
 
@@ -252,6 +254,13 @@ class DebugWindow:
             if col >= 6:
                 row += 1
                 col = 0
+
+        row += 1
+        street_label = ttk.Label(self.state_box, text="Street:")
+        street_label.grid(row=row, column=0, sticky="w", pady=(8, 0))
+        street_value = ttk.Label(self.state_box, textvariable=self.state_vars["street"])
+        street_value.grid(row=row, column=1, sticky="w", padx=(4, 16), pady=(8, 0))
+        self.state_value_labels.extend([street_label, street_value])
 
         row += 1
         pot_label = ttk.Label(self.state_box, text="Pot:")

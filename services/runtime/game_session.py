@@ -97,6 +97,7 @@ class GameSession:
             if self.debug_window is not None:
                 state_snapshot = DebugStateSnapshot(
                     position_bets=dict(self.last_game_state.get("position_bets", {})),
+                    street=self.last_game_state.get("street", "-"),
                     pot=self.last_game_state.get("pot", "-"),
                     board=self.last_game_state.get("board", "-"),
                 )

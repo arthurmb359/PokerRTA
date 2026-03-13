@@ -1,4 +1,5 @@
 from services.capture.screen_capture import ScreenCapture
+from services.recognition.card_reader import UNKNOWN_CARD
 from services.recognition.board_reader import BoardReader
 from services.recognition.bet_reader import BetReader
 from services.recognition.ocr_service import OCRService
@@ -67,9 +68,11 @@ class TableAnalyzer:
 
         pot_str = self._format_value(pot_value)
         board_str = board_text if board_text else "-"
+        street = self._infer_street(board_str)
 
         state = {
             "position_bets": position_bets,
+            "street": street,
             "pot": pot_str,
             "board": board_str,
         }
@@ -107,3 +110,17 @@ class TableAnalyzer:
         if isinstance(value, float):
             return f"{value:.2f}"
         return "-"
+
+    @staticmethod
+    def _infer_street(board_text: str) -> str:
+        if not board_text or board_text == "-":
+            return "Pre-Flop"
+
+        card_count = len([card for card in board_text.split() if card and card != UNKNOWN_CARD])
+        if card_count == 3:
+            return "Flop"
+        if card_count == 4:
+            return "Turn"
+        if card_count >= 5:
+            return "River"
+        return "Pre-Flop"
