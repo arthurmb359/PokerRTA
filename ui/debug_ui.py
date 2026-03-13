@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 from PIL import ImageTk
+from configs.config_manager import FORMATS, PLATFORMS
 from ui.view_models.debug import DebugUpdateSnapshot
 from ui.tk_thread import capture_ui_thread_id, run_on_ui_thread
 
@@ -12,16 +13,22 @@ class DebugWindow:
         parent,
         on_pause_changed,
         on_tick_rate_changed,
+        on_game_config_changed,
         on_back_to_main,
         on_exit_app,
         initial_tick_rate,
+        initial_platform,
+        initial_format,
     ):
         self.parent = parent
         self.on_pause_changed = on_pause_changed
         self.on_tick_rate_changed = on_tick_rate_changed
+        self.on_game_config_changed = on_game_config_changed
         self.on_back_to_main = on_back_to_main
         self.on_exit_app = on_exit_app
         self.initial_tick_rate = float(initial_tick_rate)
+        self.initial_platform = initial_platform
+        self.initial_format = initial_format
 
         self._running = False
         self._updates = queue.Queue()
@@ -30,6 +37,10 @@ class DebugWindow:
         self.root = None
         self.pause_btn = None
         self.tick_var = None
+        self.platform_var = None
+        self.format_var = None
+        self.platform_combo = None
+        self.format_combo = None
         self.state_vars = {}
         self.region_frame = None
         self.region_widgets = {}
@@ -50,8 +61,34 @@ class DebugWindow:
         outer = ttk.Frame(self.root, padding=10)
         outer.pack(fill="both", expand=True)
 
+        config_box = ttk.LabelFrame(outer, text="Game Config", padding=10)
+        config_box.pack(fill="x", pady=(10, 0))
+
+        self.platform_var = tk.StringVar(value=self.initial_platform)
+        self.format_var = tk.StringVar(value=self.initial_format)
+        ttk.Label(config_box, text="Platform:").grid(row=0, column=0, sticky="w")
+        self.platform_combo = ttk.Combobox(
+            config_box,
+            textvariable=self.platform_var,
+            values=PLATFORMS,
+            state="readonly",
+            width=18,
+        )
+        self.platform_combo.grid(row=0, column=1, sticky="w", padx=(6, 16))
+        ttk.Label(config_box, text="Format:").grid(row=0, column=2, sticky="w")
+        self.format_combo = ttk.Combobox(
+            config_box,
+            textvariable=self.format_var,
+            values=FORMATS,
+            state="readonly",
+            width=18,
+        )
+        self.format_combo.grid(row=0, column=3, sticky="w", padx=(6, 16))
+        self.platform_combo.bind("<<ComboboxSelected>>", self._apply_game_config)
+        self.format_combo.bind("<<ComboboxSelected>>", self._apply_game_config)
+
         state_box = ttk.LabelFrame(outer, text="Game State", padding=10)
-        state_box.pack(fill="x")
+        state_box.pack(fill="x", pady=(10, 0))
 
         self.state_vars["sb_bet"] = tk.StringVar(value="-")
         self.state_vars["bb_bet"] = tk.StringVar(value="-")
@@ -111,6 +148,10 @@ class DebugWindow:
         except Exception:
             self.tick_var.set(f"{self.initial_tick_rate:.2f}")
 
+    def _apply_game_config(self, _event=None):
+        # UI-thread-only: emits selected platform/format to the controller.
+        self.on_game_config_changed(self.platform_var.get(), self.format_var.get())
+
     def _poll_updates(self):
         # UI-thread-only: drains queued runtime snapshots via Tk after polling.
         latest_payload = None
@@ -165,10 +206,18 @@ class DebugWindow:
             "bet_0_bin": (0, 1),
             "bet_1_raw": (0, 2),
             "bet_1_bin": (0, 3),
-            "board_0_raw": (1, 0),
-            "board_0_bin": (1, 1),
-            "pot_0_raw": (2, 0),
-            "pot_0_bin": (2, 1),
+            "bet_2_raw": (1, 0),
+            "bet_2_bin": (1, 1),
+            "bet_3_raw": (1, 2),
+            "bet_3_bin": (1, 3),
+            "bet_4_raw": (2, 0),
+            "bet_4_bin": (2, 1),
+            "bet_5_raw": (2, 2),
+            "bet_5_bin": (2, 3),
+            "board_0_raw": (3, 0),
+            "board_0_bin": (3, 1),
+            "pot_0_raw": (4, 0),
+            "pot_0_bin": (4, 1),
         }
         return fixed.get(key)
 
@@ -181,7 +230,7 @@ class DebugWindow:
             return self.dynamic_positions[key]
 
         idx = len(self.dynamic_positions)
-        row = 2 + (idx // 4)
+        row = 5 + (idx // 4)
         col = idx % 4
         self.dynamic_positions[key] = (row, col)
         return row, col

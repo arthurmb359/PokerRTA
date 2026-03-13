@@ -9,7 +9,7 @@ from services.table.region_mapper import absolute_corners_to_relative, relative_
 
 
 class CalibrationOverlay:
-    HANDLE_MARGIN = 8
+    HANDLE_MARGIN = 4
     MIN_SIZE = 12
 
     def __init__(self, parent, view_snapshot, on_update=None):
@@ -81,7 +81,18 @@ class CalibrationOverlay:
                 if visible:
                     self.root.deiconify()
                     self.root.lift()
+                    self.root.attributes("-topmost", True)
+                    self.root.focus_force()
+                    try:
+                        self.root.grab_set()
+                    except Exception:
+                        pass
                 else:
+                    try:
+                        if self.root.grab_current() == self.root:
+                            self.root.grab_release()
+                    except Exception:
+                        pass
                     self.root.withdraw()
                 self._visible = visible
             finally:
@@ -123,6 +134,26 @@ class CalibrationOverlay:
         for category_snapshot in self.view_snapshot.categories:
             self._draw_category(category_snapshot)
 
+    def _reload_from_ui_thread(self, view_snapshot, on_update=None):
+        self.view_snapshot = view_snapshot
+        self.platform = view_snapshot.platform
+        self.game_format = view_snapshot.game_format
+        self.table_left = int(view_snapshot.table_left)
+        self.table_top = int(view_snapshot.table_top)
+        if on_update is not None:
+            self.on_update = on_update
+        if self.canvas is None:
+            return
+        self.canvas.delete("all")
+        self.item_map.clear()
+        self.label_to_rect.clear()
+        self.drag_ctx = None
+        self._build_rectangles()
+
+    def reload_view(self, view_snapshot, on_update=None):
+        # Cross-thread-safe: refreshes overlay rectangles for a new game config.
+        self._run_on_ui_thread(lambda: self._reload_from_ui_thread(view_snapshot, on_update))
+
     def _draw_category(self, category_snapshot):
         category = category_snapshot.category
         label_prefix = category_snapshot.label_prefix
@@ -143,12 +174,18 @@ class CalibrationOverlay:
                 fill="#00ff66",
                 stipple="gray25",
             )
+            label_y = ay1 - 2
+            label_anchor = "sw"
+            if category == "board":
+                label_y = ay2 + 2
+                label_anchor = "nw"
+
             text_id = self.canvas.create_text(
                 ax1 + 4,
-                ay1 - 2,
+                label_y,
                 text=f"{label_prefix}-{idx + 1}",
                 fill="#00ff66",
-                anchor="sw",
+                anchor=label_anchor,
                 font=("Segoe UI", 10, "bold"),
             )
             self.item_map[rect_id] = {
@@ -210,7 +247,10 @@ class CalibrationOverlay:
                 ny2 = max(y2 + dy, y1 + self.MIN_SIZE)
 
         self.canvas.coords(rect_id, nx1, ny1, nx2, ny2)
-        self.canvas.coords(label_id, nx1 + 4, ny1 - 2)
+        label_y = ny1 - 2
+        if self.item_map[rect_id]["category"] == "board":
+            label_y = ny2 + 2
+        self.canvas.coords(label_id, nx1 + 4, label_y)
 
     def _hit_test_mode(self, px, py, x1, y1, x2, y2):
         left = abs(px - x1) <= self.HANDLE_MARGIN
@@ -277,6 +317,11 @@ class CalibrationOverlay:
         self._running = False
         if self.root is None:
             return
+        try:
+            if self.root.grab_current() == self.root:
+                self.root.grab_release()
+        except Exception:
+            pass
         try:
             self.root.destroy()
         except Exception:

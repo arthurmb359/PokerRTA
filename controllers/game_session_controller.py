@@ -1,6 +1,7 @@
 ﻿import threading
 
 from configs.config_manager import get_regions_category
+from configs.config_manager import set_active_selection
 from services.runtime.game_session_builder import GameSessionBuilder
 from ui.debug_ui import DebugWindow
 from ui.overlay import CalibrationOverlay
@@ -51,20 +52,29 @@ class GameSessionController:
         self.runtime_thread = threading.Thread(target=self.game.start, daemon=True)
         self.runtime_thread.start()
 
-    def _ensure_runtime(self, platform: str, game_format: str):
+    def _rebuild_runtime(self, platform: str, game_format: str):
+        if self.game is not None:
+            self.game.pause()
+            self.game.stop()
+        if self.runtime_thread is not None and self.runtime_thread.is_alive():
+            self.runtime_thread.join(timeout=2.0)
+        self._build_runtime(platform, game_format)
+
+    def _ensure_runtime(self, platform: str, game_format: str, force_rebuild: bool = False):
         if self.game is None:
             self._build_runtime(platform, game_format)
             return
 
-        if self.game.platform != platform or self.game.game_format != game_format:
-            self._stop_ui()
-            self.game.stop()
-            if self.runtime_thread is not None and self.runtime_thread.is_alive():
-                self.runtime_thread.join(timeout=2.0)
-            self._build_runtime(platform, game_format)
+        if force_rebuild or self.game.platform != platform or self.game.game_format != game_format:
+            self._rebuild_runtime(platform, game_format)
 
     def _ensure_overlay(self):
         if self.overlay is not None:
+            self.overlay.reload_view(
+                self._build_overlay_view_snapshot(),
+                on_update=self.game._on_overlay_update,
+            )
+            self.game.attach_ui(overlay=self.overlay, debug_window=self.debug_window)
             return
         print("[UI] opening calibration overlay")
         self.overlay = CalibrationOverlay(
@@ -81,11 +91,14 @@ class GameSessionController:
         print("[UI] opening debug window")
         self.debug_window = DebugWindow(
             self.ui_root,
-            on_pause_changed=self.game._set_paused,
-            on_tick_rate_changed=self.game._set_tick_rate,
+            on_pause_changed=self._handle_pause_changed,
+            on_tick_rate_changed=self._handle_tick_rate_changed,
+            on_game_config_changed=self._handle_game_config_changed,
             on_back_to_main=self._handle_back_to_main,
             on_exit_app=self._handle_exit_app,
             initial_tick_rate=self.game.tick_rate_sec,
+            initial_platform=self.game.platform,
+            initial_format=self.game.game_format,
         )
         self.debug_window.start()
         self.game.attach_ui(overlay=self.overlay, debug_window=self.debug_window)
@@ -113,13 +126,13 @@ class GameSessionController:
         self._stop_overlay()
 
     def enter_run_mode(self, platform: str, game_format: str):
-        self._ensure_runtime(platform, game_format)
+        self._ensure_runtime(platform, game_format, force_rebuild=True)
         self._stop_debug_window()
         self._ensure_overlay()
         self.game.resume()
 
     def enter_debug_mode(self, platform: str, game_format: str):
-        self._ensure_runtime(platform, game_format)
+        self._ensure_runtime(platform, game_format, force_rebuild=True)
         self._ensure_overlay()
         self._ensure_debug_window()
         self.game.resume()
@@ -144,6 +157,21 @@ class GameSessionController:
 
     def _handle_back_to_main(self):
         self.return_to_main_menu()
+
+    def _handle_pause_changed(self, paused: bool):
+        if self.game is not None:
+            self.game._set_paused(paused)
+
+    def _handle_tick_rate_changed(self, value: float):
+        if self.game is not None:
+            self.game._set_tick_rate(value)
+
+    def _handle_game_config_changed(self, platform: str, game_format: str):
+        print(f"[UI] applying debug game config platform={platform} format={game_format}")
+        if self.game is not None and self.game.platform == platform and self.game.game_format == game_format:
+            return
+        set_active_selection(platform, game_format)
+        self.enter_debug_mode(platform=platform, game_format=game_format)
 
     def _handle_exit_app(self):
         self.shutdown()
