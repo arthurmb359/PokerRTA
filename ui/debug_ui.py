@@ -63,7 +63,7 @@ class DebugWindow:
         self._ui_thread_id = capture_ui_thread_id()
         self.root = tk.Toplevel(self.parent)
         self.root.title("PokerTool Debug")
-        self.root.geometry("980x700")
+        self.root.geometry("1080x700")
 
         outer = ttk.Frame(self.root, padding=10)
         outer.pack(fill="both", expand=True)

@@ -25,7 +25,7 @@ class GameSession:
         self.button_pos = 0
         self.btn_img_pos = 0
         self.dealer_miss_count = 0
-        self.table_analyzer = TableAnalyzer()
+        self.table_analyzer = TableAnalyzer(platform=self.platform)
 
         self.paused = False
         self.tick_rate_sec = setup.tick_rate_sec

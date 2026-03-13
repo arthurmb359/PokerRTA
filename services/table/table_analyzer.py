@@ -6,12 +6,12 @@ from services.recognition.pot_reader import PotReader
 
 
 class TableAnalyzer:
-    def __init__(self):
+    def __init__(self, platform="Suprema"):
         self.ocr_service = OCRService(lang="en")
         self.capture = ScreenCapture()
         self.bet_reader = BetReader(self.ocr_service)
         self.pot_reader = PotReader(self.ocr_service)
-        self.board_reader = BoardReader(self.ocr_service)
+        self.board_reader = BoardReader(platform=platform)
 
     def update_button_position(self, table, dealer_image, players, btn_img_pos, button_pos, dealer_miss_count):
         location = table.check_on_screen(dealer_image, log_miss=False)
