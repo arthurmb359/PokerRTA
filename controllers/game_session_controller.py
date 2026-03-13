@@ -1,7 +1,7 @@
 ﻿import threading
 
-from controllers.game_session_builder import GameSessionBuilder
 from configs.config_manager import get_regions_category
+from services.runtime.game_session_builder import GameSessionBuilder
 from ui.debug_ui import DebugWindow
 from ui.overlay import CalibrationOverlay
 from ui.view_models.overlay import OverlayCategorySnapshot, OverlayViewSnapshot

@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 
 from configs.config_manager import (
     get_active_selection,
@@ -8,8 +8,8 @@ from configs.config_manager import (
     get_seat_centers,
     load_config,
 )
-from controllers.game_session import GameSession
 from domain.player import Player
+from services.runtime.game_session import GameSession
 from services.table.region_mapper import relative_to_absolute_region
 from services.table.table_scrapper import TableScrapper
 
