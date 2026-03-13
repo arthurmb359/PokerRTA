@@ -3,11 +3,8 @@ from tkinter import ttk
 import queue
 
 from configs.config_manager import (
-    FORMATS,
-    PLATFORMS,
     get_active_selection,
     load_config,
-    set_active_selection,
 )
 
 
@@ -26,47 +23,20 @@ class PokerToolUI:
         self.root.protocol("WM_DELETE_WINDOW", self._handle_close)
         self.root.after(50, self._process_pending_calls)
 
-        self.config = load_config()
-        current_platform, current_format = get_active_selection(self.config)
-
-        self.platform_var = tk.StringVar(value=current_platform)
-        self.format_var = tk.StringVar(value=current_format)
-
         self._build_main()
 
     def _build_main(self):
         frame = ttk.Frame(self.root, padding=16)
         frame.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text="Plataforma:").grid(row=0, column=0, sticky="w", pady=(0, 8))
-        platform_combo = ttk.Combobox(frame, textvariable=self.platform_var, values=PLATFORMS, state="readonly", width=24)
-        platform_combo.grid(row=0, column=1, sticky="ew", pady=(0, 8))
-
-        ttk.Label(frame, text="Formato:").grid(row=1, column=0, sticky="w", pady=(0, 16))
-        format_combo = ttk.Combobox(frame, textvariable=self.format_var, values=FORMATS, state="readonly", width=24)
-        format_combo.grid(row=1, column=1, sticky="ew", pady=(0, 16))
-
         buttons = ttk.Frame(frame)
-        buttons.grid(row=2, column=0, columnspan=2, sticky="ew")
+        buttons.pack(fill="x")
 
         ttk.Button(buttons, text="Debug", command=self.start_debug).pack(side="right", padx=(0, 8))
-        ttk.Button(buttons, text="Iniciar", command=self.start_program).pack(side="right")
-
-        frame.columnconfigure(1, weight=1)
-
-    def _selected_platform_and_format(self):
-        platform = self.platform_var.get()
-        game_format = self.format_var.get()
-        set_active_selection(platform, game_format)
-        return platform, game_format
-
-    def start_program(self):
-        platform, game_format = self._selected_platform_and_format()
-        if self.on_start_run is not None:
-            self.on_start_run(platform, game_format)
 
     def start_debug(self):
-        platform, game_format = self._selected_platform_and_format()
+        config = load_config()
+        platform, game_format = get_active_selection(config)
         if self.on_start_debug is not None:
             self.on_start_debug(platform, game_format)
 
