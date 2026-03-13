@@ -1,5 +1,6 @@
 ﻿import threading
 import tkinter as tk
+import keyboard
 
 from configs.config_manager import get_regions_category
 from services.table.calibration_service import update_calibration_region
@@ -27,12 +28,14 @@ class CalibrationOverlay:
         self.label_to_rect = {}  # label_id -> rect_id
         self.drag_ctx = None
         self._visible = True
+        self._hotkey_handle = None
 
     def start(self):
         if self._running:
             return
         self._running = True
         self._closed.clear()
+        self._register_hotkeys()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
@@ -60,6 +63,26 @@ class CalibrationOverlay:
             done.wait(timeout)
         except Exception:
             pass
+
+    def toggle_visibility(self):
+        self.set_visible(not self._visible)
+
+    def _register_hotkeys(self):
+        if self._hotkey_handle is not None:
+            return
+        try:
+            self._hotkey_handle = keyboard.add_hotkey("o", self.toggle_visibility, suppress=False)
+        except Exception:
+            self._hotkey_handle = None
+
+    def _unregister_hotkeys(self):
+        if self._hotkey_handle is None:
+            return
+        try:
+            keyboard.remove_hotkey(self._hotkey_handle)
+        except Exception:
+            pass
+        self._hotkey_handle = None
 
     def _run(self):
         self.root = tk.Tk()
@@ -255,6 +278,7 @@ class CalibrationOverlay:
 
     def stop(self):
         self._running = False
+        self._unregister_hotkeys()
         if self.root is not None:
             done = threading.Event()
 
