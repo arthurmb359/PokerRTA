@@ -89,9 +89,11 @@ class TableAnalyzer:
         pot_str = self._format_value(pot_value)
         board_str = board_text if board_text else "-"
         street = self._infer_street(board_str)
+        hero_position = players[0].position if players else "-"
 
         state = {
             "position_bets": position_bets,
+            "hero_position": hero_position,
             "street": street,
             "hero_action": hero_action,
             "pot": pot_str,
