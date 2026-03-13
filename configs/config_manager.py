@@ -14,8 +14,8 @@ DEFAULT_SEAT_CENTERS = {
 
 PLATFORM_ASSETS = {
     "Suprema": {
-        "anchor_image": "suprema_icon.png",
-        "dealer_image": "dealer_suprema.png",
+        "anchor_image": "logo.png",
+        "dealer_image": "dealer.png",
     },
     "PPPoker": {
         "anchor_image": "table_edge.png",

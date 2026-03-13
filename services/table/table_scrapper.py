@@ -28,7 +28,11 @@ class TableScrapper:
 
     def check_on_screen(self, image_name, confidence=0.8, log_miss=True):
         base_dir = Path(__file__).resolve().parents[2]
-        image_path = base_dir / "assets" / "images" / image_name
+        image_path = Path(image_name)
+        if not image_path.is_absolute():
+            platform_image_path = base_dir / "assets" / self.platform / "images" / image_name
+            legacy_image_path = base_dir / "assets" / "images" / image_name
+            image_path = platform_image_path if platform_image_path.exists() else legacy_image_path
 
         try:
             location = pyautogui.locateOnScreen(str(image_path), confidence=confidence)
@@ -44,4 +48,3 @@ class TableScrapper:
 
     def get_top_edge(self):
         return self.y
-
