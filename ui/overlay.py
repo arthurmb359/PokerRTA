@@ -1,8 +1,9 @@
 ﻿import threading
 import tkinter as tk
 import keyboard
+from ui.view_models.overlay import OverlayUpdateSnapshot
+from ui.tk_thread import capture_ui_thread_id, run_on_ui_thread
 
-from configs.config_manager import get_regions_category
 from services.table.calibration_service import update_calibration_region
 from services.table.region_mapper import absolute_corners_to_relative, relative_to_absolute_corners
 
@@ -11,81 +12,34 @@ class CalibrationOverlay:
     HANDLE_MARGIN = 8
     MIN_SIZE = 12
 
-    def __init__(self, platform, game_format, table_left, table_top, on_update=None):
-        self.platform = platform
-        self.game_format = game_format
-        self.table_left = int(table_left)
-        self.table_top = int(table_top)
+    def __init__(self, parent, view_snapshot, on_update=None):
+        self.parent = parent
+        self.view_snapshot = view_snapshot
+        self.platform = view_snapshot.platform
+        self.game_format = view_snapshot.game_format
+        self.table_left = int(view_snapshot.table_left)
+        self.table_top = int(view_snapshot.table_top)
         self.on_update = on_update
 
-        self._thread = None
         self._running = False
-        self._closed = threading.Event()
+        self._ui_thread_id = None
 
         self.root = None
         self.canvas = None
         self.item_map = {}  # rect_id -> {category, index, label_id}
         self.label_to_rect = {}  # label_id -> rect_id
         self.drag_ctx = None
-        self._visible = True
+        self._visible = False
         self._hotkey_handle = None
 
     def start(self):
+        # UI-thread-only: creates the Toplevel, canvas, and overlay bindings.
         if self._running:
             return
         self._running = True
-        self._closed.clear()
+        self._ui_thread_id = capture_ui_thread_id()
         self._register_hotkeys()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
-
-    def set_visible(self, visible: bool, timeout=0.2):
-        if self.root is None or not self._running:
-            return
-
-        done = threading.Event()
-
-        def _apply():
-            try:
-                if self.root is None:
-                    return
-                if visible:
-                    self.root.deiconify()
-                    self.root.lift()
-                else:
-                    self.root.withdraw()
-                self._visible = visible
-            finally:
-                done.set()
-
-        try:
-            self.root.after(0, _apply)
-            done.wait(timeout)
-        except Exception:
-            pass
-
-    def toggle_visibility(self):
-        self.set_visible(not self._visible)
-
-    def _register_hotkeys(self):
-        if self._hotkey_handle is not None:
-            return
-        try:
-            self._hotkey_handle = keyboard.add_hotkey("o", self.toggle_visibility, suppress=False)
-        except Exception:
-            self._hotkey_handle = None
-
-    def _unregister_hotkeys(self):
-        if self._hotkey_handle is None:
-            return
-        try:
-            keyboard.remove_hotkey(self._hotkey_handle)
-        except Exception:
-            pass
-        self._hotkey_handle = None
-
-    def _run(self):
-        self.root = tk.Tk()
+        self.root = tk.Toplevel(self.parent)
         self.root.title("Calibration Overlay")
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
@@ -110,22 +64,69 @@ class CalibrationOverlay:
         self.canvas.bind("<ButtonPress-1>", self._on_press)
         self.canvas.bind("<B1-Motion>", self._on_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_release)
-        self.root.bind_all("<Escape>", self._on_escape)
+        self.root.bind("<Escape>", self._on_escape)
+        self.root.withdraw()
+
+    def set_visible(self, visible: bool, timeout=0.2):
+        # Cross-thread-safe: visibility changes are applied on the UI thread.
+        if self.root is None or not self._running:
+            return
+
+        done = threading.Event()
+
+        def _apply():
+            try:
+                if self.root is None:
+                    return
+                if visible:
+                    self.root.deiconify()
+                    self.root.lift()
+                else:
+                    self.root.withdraw()
+                self._visible = visible
+            finally:
+                done.set()
+
+        if capture_ui_thread_id() == self._ui_thread_id:
+            _apply()
+            return
 
         try:
-            self.root.mainloop()
-        finally:
-            self._running = False
-            self._closed.set()
+            self.root.after(0, _apply)
+            done.wait(timeout)
+        except Exception:
+            pass
+
+    def toggle_visibility(self):
+        # Cross-thread-safe: hotkey callback may arrive outside the UI thread.
+        self.set_visible(not self._visible)
+
+    def _register_hotkeys(self):
+        if self._hotkey_handle is not None:
+            return
+        try:
+            self._hotkey_handle = keyboard.add_hotkey("o", self.toggle_visibility, suppress=False)
+        except Exception:
+            self._hotkey_handle = None
+
+    def _unregister_hotkeys(self):
+        if self._hotkey_handle is None:
+            return
+        try:
+            keyboard.remove_hotkey(self._hotkey_handle)
+        except Exception:
+            pass
+        self._hotkey_handle = None
 
     def _build_rectangles(self):
-        self._draw_category("bet", "BET")
-        self._draw_category("pot", "POT")
-        self._draw_category("board", "BOARD")
+        # UI-thread-only: creates overlay canvas items.
+        for category_snapshot in self.view_snapshot.categories:
+            self._draw_category(category_snapshot)
 
-    def _draw_category(self, category, label_prefix):
-        regions = get_regions_category(self.platform, self.game_format, category)
-        for idx, rel in enumerate(regions):
+    def _draw_category(self, category_snapshot):
+        category = category_snapshot.category
+        label_prefix = category_snapshot.label_prefix
+        for idx, rel in enumerate(category_snapshot.regions):
             ax1, ay1, ax2, ay2 = relative_to_absolute_corners(
                 self.table_left,
                 self.table_top,
@@ -158,6 +159,7 @@ class CalibrationOverlay:
             self.label_to_rect[text_id] = rect_id
 
     def _on_press(self, event):
+        # UI-thread-only: pointer event handler.
         item_ids = self.canvas.find_overlapping(event.x, event.y, event.x, event.y)
         rect_id = None
         for item_id in reversed(item_ids):
@@ -183,6 +185,7 @@ class CalibrationOverlay:
         }
 
     def _on_drag(self, event):
+        # UI-thread-only: pointer event handler mutating canvas items.
         if not self.drag_ctx:
             return
 
@@ -234,6 +237,7 @@ class CalibrationOverlay:
         return "move"
 
     def _on_release(self, _event):
+        # UI-thread-only: persists updated geometry after drag completes.
         if not self.drag_ctx:
             return
 
@@ -255,44 +259,37 @@ class CalibrationOverlay:
         if index < len(regions):
             print(f"[Overlay] updated {category}[{index}] -> {rel}")
             if self.on_update is not None:
-                self.on_update(category, regions)
+                self.on_update(
+                    OverlayUpdateSnapshot(
+                        category=category,
+                        regions=tuple(tuple(region) for region in regions),
+                    )
+                )
 
         self.drag_ctx = None
 
     def _on_escape(self, _event=None):
+        # UI-thread-only: Tk key binding callback.
         self._close_from_ui_thread()
 
     def _close_from_ui_thread(self):
+        # UI-thread-only: the only method allowed to destroy the Tk window.
         self._running = False
         if self.root is None:
             return
-        try:
-            self.root.quit()
-        except Exception:
-            pass
         try:
             self.root.destroy()
         except Exception:
             pass
         self.root = None
+        self._ui_thread_id = None
+
+    def _run_on_ui_thread(self, callback):
+        # Cross-thread bridge: schedules Tk work onto the UI thread when needed.
+        run_on_ui_thread(self.root, self._ui_thread_id, callback)
 
     def stop(self):
+        # Cross-thread-safe: may be called outside the UI thread.
         self._running = False
         self._unregister_hotkeys()
-        if self.root is not None:
-            done = threading.Event()
-
-            def _close():
-                try:
-                    self._close_from_ui_thread()
-                finally:
-                    done.set()
-
-            try:
-                self.root.after(0, _close)
-                done.wait(0.8)
-            except Exception:
-                pass
-
-        if self._thread is not None and self._thread.is_alive():
-            self._thread.join(timeout=1.0)
+        self._run_on_ui_thread(self._close_from_ui_thread)

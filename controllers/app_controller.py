@@ -2,6 +2,7 @@
 import sys
 
 from controllers.game_session_controller import GameSessionController
+from services.recognition.ocr_service import OCRService
 from ui import PokerToolUI
 
 
@@ -14,9 +15,11 @@ class AppController:
             on_exit=self._on_menu_exit,
         )
         self.session_controller = GameSessionController(
+            ui_root=self.ui.root,
             on_back_to_main=self._request_back_to_main,
             on_exit_app=self._request_exit_app,
         )
+        self.ui.call_soon(OCRService.warmup_async, "en")
 
     def _on_start_run(self, platform: str, game_format: str):
         self.ui.hide()
@@ -31,11 +34,13 @@ class AppController:
         self._request_exit_app()
 
     def _request_back_to_main(self):
+        print("[UI] scheduling main menu show")
         self.ui.call_soon(self._show_main_menu)
 
     def _show_main_menu(self):
         if self._shutting_down:
             return
+        print("[UI] showing main menu")
         self.ui.show()
 
     def _request_exit_app(self):

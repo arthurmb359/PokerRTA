@@ -7,6 +7,8 @@ from services.table.calibration_service import apply_runtime_regions
 from services.table.region_mapper import relative_to_absolute_region
 from services.table.table_analyzer import TableAnalyzer
 from services.table.table_scrapper import TableScrapper
+from ui.view_models.debug import DebugStateSnapshot, DebugUpdateSnapshot
+from ui.view_models.overlay import OverlayUpdateSnapshot
 
 
 class GameSession:
@@ -94,18 +96,25 @@ class GameSession:
             if not self.running:
                 break
             if self.debug_window is not None:
-                state_snapshot = dict(self.last_game_state)
+                state_snapshot = DebugStateSnapshot(
+                    sb_bet=self.last_game_state.get("sb_bet", "-"),
+                    bb_bet=self.last_game_state.get("bb_bet", "-"),
+                    pot=self.last_game_state.get("pot", "-"),
+                    board=self.last_game_state.get("board", "-"),
+                )
                 regions_snapshot = {
                     key: (img.copy() if img is not None else None)
                     for key, img in self.latest_region_images.items()
                 }
-                self.debug_window.push_update(state_snapshot, regions_snapshot)
+                self.debug_window.push_update(
+                    DebugUpdateSnapshot(state=state_snapshot, regions=regions_snapshot)
+                )
             time.sleep(self.tick_rate_sec)
 
-    def _on_overlay_update(self, category, regions):
+    def _on_overlay_update(self, payload: OverlayUpdateSnapshot):
         self.pot_regions_abs, self.board_regions_abs, updated_category = apply_runtime_regions(
-            category=category,
-            regions=regions,
+            category=payload.category,
+            regions=[list(region) for region in payload.regions],
             players=self.list,
             to_absolute_region=self.to_absolute_region,
             pot_regions_abs=self.pot_regions_abs,

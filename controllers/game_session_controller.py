@@ -1,13 +1,16 @@
 ﻿import threading
 
 from controllers.game_session_builder import GameSessionBuilder
+from configs.config_manager import get_regions_category
 from ui.debug_ui import DebugWindow
 from ui.overlay import CalibrationOverlay
+from ui.view_models.overlay import OverlayCategorySnapshot, OverlayViewSnapshot
 
 
 class GameSessionController:
-    def __init__(self, on_back_to_main, on_exit_app):
+    def __init__(self, ui_root, on_back_to_main, on_exit_app):
         self.builder = GameSessionBuilder()
+        self.ui_root = ui_root
         self.on_back_to_main = on_back_to_main
         self.on_exit_app = on_exit_app
 
@@ -15,6 +18,32 @@ class GameSessionController:
         self.runtime_thread = None
         self.overlay = None
         self.debug_window = None
+
+    def _build_overlay_view_snapshot(self) -> OverlayViewSnapshot:
+        categories = (
+            OverlayCategorySnapshot(
+                category="bet",
+                label_prefix="BET",
+                regions=tuple(tuple(region) for region in get_regions_category(self.game.platform, self.game.game_format, "bet")),
+            ),
+            OverlayCategorySnapshot(
+                category="pot",
+                label_prefix="POT",
+                regions=tuple(tuple(region) for region in get_regions_category(self.game.platform, self.game.game_format, "pot")),
+            ),
+            OverlayCategorySnapshot(
+                category="board",
+                label_prefix="BOARD",
+                regions=tuple(tuple(region) for region in get_regions_category(self.game.platform, self.game.game_format, "board")),
+            ),
+        )
+        return OverlayViewSnapshot(
+            platform=self.game.platform,
+            game_format=self.game.game_format,
+            table_left=self.game.table.get_left_edge(),
+            table_top=self.game.table.get_top_edge(),
+            categories=categories,
+        )
 
     def _build_runtime(self, platform: str, game_format: str):
         self.game = self.builder.build(platform=platform, game_format=game_format, debug_mode=False)
@@ -37,11 +66,10 @@ class GameSessionController:
     def _ensure_overlay(self):
         if self.overlay is not None:
             return
+        print("[UI] opening calibration overlay")
         self.overlay = CalibrationOverlay(
-            self.game.platform,
-            self.game.game_format,
-            self.game.table.get_left_edge(),
-            self.game.table.get_top_edge(),
+            self.ui_root,
+            self._build_overlay_view_snapshot(),
             on_update=self.game._on_overlay_update,
         )
         self.overlay.start()
@@ -50,7 +78,9 @@ class GameSessionController:
     def _ensure_debug_window(self):
         if self.debug_window is not None:
             return
+        print("[UI] opening debug window")
         self.debug_window = DebugWindow(
+            self.ui_root,
             on_pause_changed=self.game._set_paused,
             on_tick_rate_changed=self.game._set_tick_rate,
             on_back_to_main=self._handle_back_to_main,
@@ -63,6 +93,7 @@ class GameSessionController:
     def _stop_debug_window(self):
         if self.debug_window is None:
             return
+        print("[UI] closing debug window")
         window = self.debug_window
         self.debug_window = None
         self.game.attach_ui(overlay=self.overlay, debug_window=None)
@@ -71,6 +102,7 @@ class GameSessionController:
     def _stop_overlay(self):
         if self.overlay is None:
             return
+        print("[UI] closing calibration overlay")
         overlay = self.overlay
         self.overlay = None
         self.game.attach_ui(overlay=None, debug_window=self.debug_window)
@@ -96,6 +128,7 @@ class GameSessionController:
         if self.game is None:
             self.on_back_to_main()
             return
+        print("[UI] returning to main menu")
         self.game.pause()
         self._stop_ui()
         self.on_back_to_main()

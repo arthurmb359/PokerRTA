@@ -1,29 +1,31 @@
 ﻿import queue
-import threading
 import tkinter as tk
 from tkinter import ttk
 from PIL import ImageTk
+from ui.view_models.debug import DebugUpdateSnapshot
+from ui.tk_thread import capture_ui_thread_id, run_on_ui_thread
 
 
 class DebugWindow:
     def __init__(
         self,
+        parent,
         on_pause_changed,
         on_tick_rate_changed,
         on_back_to_main,
         on_exit_app,
         initial_tick_rate,
     ):
+        self.parent = parent
         self.on_pause_changed = on_pause_changed
         self.on_tick_rate_changed = on_tick_rate_changed
         self.on_back_to_main = on_back_to_main
         self.on_exit_app = on_exit_app
         self.initial_tick_rate = float(initial_tick_rate)
 
-        self._thread = None
         self._running = False
         self._updates = queue.Queue()
-        self._closed = threading.Event()
+        self._ui_thread_id = None
 
         self.root = None
         self.pause_btn = None
@@ -36,15 +38,12 @@ class DebugWindow:
         self.paused = False
 
     def start(self):
+        # UI-thread-only: creates the Toplevel and all widgets.
         if self._running:
             return
         self._running = True
-        self._closed.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
-
-    def _run(self):
-        self.root = tk.Tk()
+        self._ui_thread_id = capture_ui_thread_id()
+        self.root = tk.Toplevel(self.parent)
         self.root.title("PokerTool Debug")
         self.root.geometry("980x700")
 
@@ -94,18 +93,15 @@ class DebugWindow:
 
         self.root.after(100, self._poll_updates)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-        try:
-            self.root.mainloop()
-        finally:
-            self._running = False
-            self._closed.set()
 
     def _toggle_pause(self):
+        # UI-thread-only: button callback mutating widgets/state.
         self.paused = not self.paused
         self.pause_btn.configure(text="Resume" if self.paused else "Pause")
         self.on_pause_changed(self.paused)
 
     def _apply_tick_rate(self):
+        # UI-thread-only: reads entry state and updates UI on validation errors.
         try:
             value = float(self.tick_var.get())
             if value < 0.05:
@@ -116,6 +112,7 @@ class DebugWindow:
             self.tick_var.set(f"{self.initial_tick_rate:.2f}")
 
     def _poll_updates(self):
+        # UI-thread-only: drains queued runtime snapshots via Tk after polling.
         latest_payload = None
         while not self._updates.empty():
             latest_payload = self._updates.get_nowait()
@@ -125,15 +122,16 @@ class DebugWindow:
             self.root.after(120, self._poll_updates)
 
     def _apply_update(self, payload):
+        # UI-thread-only: applies state/image updates to Tk widgets.
         if self.root is None:
             return
-        state = payload.get("state", {})
-        self.state_vars["sb_bet"].set(state.get("sb_bet", "-"))
-        self.state_vars["bb_bet"].set(state.get("bb_bet", "-"))
-        self.state_vars["pot"].set(state.get("pot", "-"))
-        self.state_vars["board"].set(state.get("board", "-"))
+        state = payload.state
+        self.state_vars["sb_bet"].set(state.sb_bet)
+        self.state_vars["bb_bet"].set(state.bb_bet)
+        self.state_vars["pot"].set(state.pot)
+        self.state_vars["board"].set(state.board)
 
-        regions = payload.get("regions", {})
+        regions = payload.regions
         for key in sorted(regions.keys()):
             pil_img = regions[key]
             if pil_img is None:
@@ -188,12 +186,14 @@ class DebugWindow:
         self.dynamic_positions[key] = (row, col)
         return row, col
 
-    def push_update(self, state, regions):
+    def push_update(self, payload: DebugUpdateSnapshot):
+        # Runtime-thread-safe: enqueue-only, no Tk access here.
         if not self._running:
             return
-        self._updates.put({"state": state, "regions": regions})
+        self._updates.put(payload)
 
     def _on_close(self):
+        # UI-thread-only: window close callback from Tk.
         try:
             self.on_exit_app()
         except Exception:
@@ -201,41 +201,22 @@ class DebugWindow:
         self._close_from_ui_thread()
 
     def _close_from_ui_thread(self):
+        # UI-thread-only: the only method allowed to destroy the Tk window.
         self._running = False
         if self.root is None:
             return
-        try:
-            self.root.quit()
-        except Exception:
-            pass
         try:
             self.root.destroy()
         except Exception:
             pass
         self.root = None
+        self._ui_thread_id = None
+
+    def _run_on_ui_thread(self, callback):
+        # Cross-thread bridge: schedules Tk work onto the UI thread when needed.
+        run_on_ui_thread(self.root, self._ui_thread_id, callback)
 
     def stop(self):
+        # Cross-thread-safe: may be called outside the UI thread.
         self._running = False
-
-        if threading.current_thread() is self._thread:
-            self._close_from_ui_thread()
-            return
-
-        if self.root is not None:
-            done = threading.Event()
-
-            def _close():
-                try:
-                    self._close_from_ui_thread()
-                finally:
-                    done.set()
-
-            try:
-                self.root.after(0, _close)
-                done.wait(0.8)
-            except Exception:
-                pass
-
-        if self._thread is not None and self._thread.is_alive() and threading.current_thread() is not self._thread:
-            self._thread.join(timeout=1.0)
-
+        self._run_on_ui_thread(self._close_from_ui_thread)

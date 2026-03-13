@@ -1,5 +1,6 @@
 ﻿import tkinter as tk
 from tkinter import ttk, messagebox
+import queue
 
 from configs.config_manager import (
     FORMATS,
@@ -25,12 +26,14 @@ class PokerToolUI:
         self.on_start_debug = on_start_debug
         self.on_exit = on_exit
         self._closing = False
+        self._pending_calls = queue.Queue()
 
         self.root = tk.Tk()
         self.root.title("PokerTool")
         self.root.geometry("420x220")
         self.root.resizable(False, False)
         self.root.protocol("WM_DELETE_WINDOW", self._handle_close)
+        self.root.after(50, self._process_pending_calls)
 
         self.config = load_config()
         current_platform, current_format = get_active_selection(self.config)
@@ -232,7 +235,18 @@ class PokerToolUI:
         self.root.withdraw()
 
     def call_soon(self, callback, *args):
-        self.root.after(0, lambda: callback(*args))
+        self._pending_calls.put((callback, args))
+
+    def _process_pending_calls(self):
+        while True:
+            try:
+                callback, args = self._pending_calls.get_nowait()
+            except queue.Empty:
+                break
+            callback(*args)
+
+        if not self._closing:
+            self.root.after(50, self._process_pending_calls)
 
     def close(self):
         self._closing = True
