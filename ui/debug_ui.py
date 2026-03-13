@@ -100,6 +100,7 @@ class DebugWindow:
         self.state_vars["pot"] = tk.StringVar(value="-")
         self.state_vars["board"] = tk.StringVar(value="-")
         self.state_vars["street"] = tk.StringVar(value="-")
+        self.state_vars["hero_action"] = tk.StringVar(value="NO")
         self._build_state_fields(self.initial_format)
 
         controls = ttk.Frame(outer)
@@ -168,6 +169,7 @@ class DebugWindow:
         for position in self._position_order(self.format_var.get()):
             self.state_vars[position].set(state.position_bets.get(position, "-"))
         self.state_vars["street"].set(state.street)
+        self.state_vars["hero_action"].set(state.hero_action)
         self.state_vars["pot"].set(state.pot)
         self.state_vars["board"].set(state.board)
 
@@ -260,7 +262,11 @@ class DebugWindow:
         street_label.grid(row=row, column=0, sticky="w", pady=(8, 0))
         street_value = ttk.Label(self.state_box, textvariable=self.state_vars["street"])
         street_value.grid(row=row, column=1, sticky="w", padx=(4, 16), pady=(8, 0))
-        self.state_value_labels.extend([street_label, street_value])
+        hero_action_label = ttk.Label(self.state_box, text="Hero Turn:")
+        hero_action_label.grid(row=row, column=2, sticky="w", pady=(8, 0))
+        hero_action_value = ttk.Label(self.state_box, textvariable=self.state_vars["hero_action"])
+        hero_action_value.grid(row=row, column=3, sticky="w", padx=(4, 16), pady=(8, 0))
+        self.state_value_labels.extend([street_label, street_value, hero_action_label, hero_action_value])
 
         row += 1
         pot_label = ttk.Label(self.state_box, text="Pot:")

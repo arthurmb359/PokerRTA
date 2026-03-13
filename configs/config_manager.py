@@ -38,6 +38,7 @@ DEFAULT_CONFIG = {
                 ],
                 "pot": [],
                 "board": [],
+                "hero_action": [[500, 500, 700, 550]],
             },
             "6-max": {
                 "bet": [
@@ -50,6 +51,7 @@ DEFAULT_CONFIG = {
                 ],
                 "pot": [],
                 "board": [],
+                "hero_action": [[500, 500, 700, 550]],
             },
         },
         "PPPoker": {
@@ -60,6 +62,7 @@ DEFAULT_CONFIG = {
                 ],
                 "pot": [],
                 "board": [],
+                "hero_action": [[500, 500, 700, 550]],
             },
             "6-max": {
                 "bet": [
@@ -72,6 +75,7 @@ DEFAULT_CONFIG = {
                 ],
                 "pot": [],
                 "board": [],
+                "hero_action": [[500, 500, 700, 550]],
             },
         },
     },
@@ -155,7 +159,7 @@ def set_calibration_category(
     config = load_config()
     fmt = config["calibrations"][platform][game_format]
     if not isinstance(fmt, dict):
-        fmt = {"bet": fmt, "pot": [], "board": []}
+        fmt = {"bet": fmt, "pot": [], "board": [], "hero_action": []}
         config["calibrations"][platform][game_format] = fmt
     fmt[category] = regions
     save_config(config)
@@ -198,11 +202,15 @@ def _normalize_calibration_schema(config: dict) -> dict:
                     "bet": value,
                     "pot": [],
                     "board": [],
+                    "hero_action": [],
                 }
             elif isinstance(value, dict):
                 value.setdefault("bet", [])
                 value.setdefault("pot", [])
                 value.setdefault("board", [])
+                if "my_turn" in value and "hero_action" not in value:
+                    value["hero_action"] = value.pop("my_turn")
+                value.setdefault("hero_action", [])
     return config
 
 

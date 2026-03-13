@@ -37,6 +37,11 @@ class GameSessionController:
                 label_prefix="BOARD",
                 regions=tuple(tuple(region) for region in get_regions_category(self.game.platform, self.game.game_format, "board")),
             ),
+            OverlayCategorySnapshot(
+                category="hero_action",
+                label_prefix="HEROo TURN",
+                regions=tuple(tuple(region) for region in get_regions_category(self.game.platform, self.game.game_format, "hero_action")),
+            ),
         )
         return OverlayViewSnapshot(
             platform=self.game.platform,

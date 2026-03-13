@@ -1,6 +1,6 @@
 {
   "selected_platform": "Suprema",
-  "selected_format": "HeadsUp",
+  "selected_format": "6-max",
   "game_tick_rate_sec": 2.0,
   "calibrations": {
     "Suprema": {
@@ -33,6 +33,14 @@
             354,
             468,
             459
+          ]
+        ],
+        "hero_action": [
+          [
+            -1,
+            954,
+            186,
+            1020
           ]
         ]
       },
@@ -90,6 +98,14 @@
             468,
             459
           ]
+        ],
+        "hero_action": [
+          [
+            1,
+            954,
+            185,
+            1022
+          ]
         ]
       }
     },
@@ -110,7 +126,15 @@
           ]
         ],
         "pot": [],
-        "board": []
+        "board": [],
+        "hero_action": [
+          [
+            500,
+            500,
+            700,
+            550
+          ]
+        ]
       },
       "6-max": {
         "bet": [
@@ -152,7 +176,15 @@
           ]
         ],
         "pot": [],
-        "board": []
+        "board": [],
+        "hero_action": [
+          [
+            500,
+            500,
+            700,
+            550
+          ]
+        ]
       }
     }
   }

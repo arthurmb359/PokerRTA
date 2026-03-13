@@ -26,8 +26,10 @@ class GameSessionSetup:
     players: list[Player]
     pot_regions_rel: list[list[int]]
     board_regions_rel: list[list[int]]
+    hero_action_regions_rel: list[list[int]]
     pot_regions_abs: list[tuple[int, int, int, int]]
     board_regions_abs: list[tuple[int, int, int, int]]
+    hero_action_regions_abs: list[tuple[int, int, int, int]]
 
 
 class GameSessionBuilder:
@@ -52,6 +54,7 @@ class GameSessionBuilder:
         bet_regions_rel = get_regions_category(platform, game_format, "bet", config)
         pot_regions_rel = get_regions_category(platform, game_format, "pot", config)
         board_regions_rel = get_regions_category(platform, game_format, "board", config)
+        hero_action_regions_rel = get_regions_category(platform, game_format, "hero_action", config)
 
         if len(bet_regions_rel) < len(seat_centers):
             raise ValueError(
@@ -72,6 +75,7 @@ class GameSessionBuilder:
 
         pot_regions_abs = [self._to_absolute_region(table, r) for r in pot_regions_rel]
         board_regions_abs = [self._to_absolute_region(table, r) for r in board_regions_rel]
+        hero_action_regions_abs = [self._to_absolute_region(table, r) for r in hero_action_regions_rel]
 
         setup = GameSessionSetup(
             config=config,
@@ -84,7 +88,9 @@ class GameSessionBuilder:
             players=players,
             pot_regions_rel=pot_regions_rel,
             board_regions_rel=board_regions_rel,
+            hero_action_regions_rel=hero_action_regions_rel,
             pot_regions_abs=pot_regions_abs,
             board_regions_abs=board_regions_abs,
+            hero_action_regions_abs=hero_action_regions_abs,
         )
         return GameSession(setup=setup)

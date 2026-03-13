@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class DebugStateSnapshot:
     position_bets: dict[str, str]
     street: str = "-"
+    hero_action: str = "NO"
     pot: str = "-"
     board: str = "-"
 
