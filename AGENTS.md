@@ -2,7 +2,7 @@
 
 ## Project
 
-PokerRTA is a real-time heads-up poker assistant.
+PokerTool is a real-time heads-up poker assistant.
 
 The system captures the poker table from the screen, identifies the current game state, and queries previously solved strategies generated with PioSolver.
 

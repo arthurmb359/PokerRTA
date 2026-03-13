@@ -1,7 +1,6 @@
 ﻿import tkinter as tk
 from tkinter import ttk, messagebox
 
-from services.table.table_scrapper import TableScrapper
 from configs.config_manager import (
     FORMATS,
     PLATFORMS,
@@ -11,6 +10,7 @@ from configs.config_manager import (
     set_active_selection,
     set_calibration_category,
 )
+from services.table.table_scrapper import TableScrapper
 
 CALIBRATION_CATEGORIES = {
     "bet": "Bet",
@@ -19,17 +19,18 @@ CALIBRATION_CATEGORIES = {
 }
 
 
-class PokerRTAUI:
-    def __init__(self):
+class PokerToolUI:
+    def __init__(self, on_start_run=None, on_start_debug=None, on_exit=None):
+        self.on_start_run = on_start_run
+        self.on_start_debug = on_start_debug
+        self.on_exit = on_exit
+        self._closing = False
+
         self.root = tk.Tk()
-        self.root.title("PokerRTA")
+        self.root.title("PokerTool")
         self.root.geometry("420x220")
         self.root.resizable(False, False)
-
-        self.start_requested = False
-        self.debug_requested = False
-        self.selected_platform = None
-        self.selected_format = None
+        self.root.protocol("WM_DELETE_WINDOW", self._handle_close)
 
         self.config = load_config()
         current_platform, current_format = get_active_selection(self.config)
@@ -60,27 +61,21 @@ class PokerRTAUI:
 
         frame.columnconfigure(1, weight=1)
 
-    def start_program(self):
+    def _selected_platform_and_format(self):
         platform = self.platform_var.get()
         game_format = self.format_var.get()
         set_active_selection(platform, game_format)
+        return platform, game_format
 
-        self.start_requested = True
-        self.debug_requested = False
-        self.selected_platform = platform
-        self.selected_format = game_format
-        self.root.destroy()
+    def start_program(self):
+        platform, game_format = self._selected_platform_and_format()
+        if self.on_start_run is not None:
+            self.on_start_run(platform, game_format)
 
     def start_debug(self):
-        platform = self.platform_var.get()
-        game_format = self.format_var.get()
-        set_active_selection(platform, game_format)
-
-        self.start_requested = True
-        self.debug_requested = True
-        self.selected_platform = platform
-        self.selected_format = game_format
-        self.root.destroy()
+        platform, game_format = self._selected_platform_and_format()
+        if self.on_start_debug is not None:
+            self.on_start_debug(platform, game_format)
 
     def open_settings(self):
         settings = tk.Toplevel(self.root)
@@ -127,10 +122,8 @@ class PokerRTAUI:
     def run_calibration(self, platform: str, game_format: str, category: str):
         if category == "bet":
             target_count = len(get_seat_centers(game_format))
-            target_name = "player"
         else:
             target_count = 1
-            target_name = category
 
         category_label = CALIBRATION_CATEGORIES.get(category, category)
         messagebox.showinfo(
@@ -230,11 +223,36 @@ class PokerRTAUI:
 
         return point["value"]
 
+    def show(self):
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def hide(self):
+        self.root.withdraw()
+
+    def call_soon(self, callback, *args):
+        self.root.after(0, lambda: callback(*args))
+
+    def close(self):
+        self._closing = True
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+
+    def _handle_close(self):
+        if self._closing:
+            return
+        if self.on_exit is not None:
+            self.on_exit()
+            return
+        self.close()
+
     def run(self):
         self.root.mainloop()
-        return self.start_requested, self.selected_platform, self.selected_format, self.debug_requested
 
 
 if __name__ == "__main__":
-    app = PokerRTAUI()
+    app = PokerToolUI()
     app.run()

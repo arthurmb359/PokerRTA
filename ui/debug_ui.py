@@ -45,7 +45,7 @@ class DebugWindow:
 
     def _run(self):
         self.root = tk.Tk()
-        self.root.title("PokerRTA Debug")
+        self.root.title("PokerTool Debug")
         self.root.geometry("980x700")
 
         outer = ttk.Frame(self.root, padding=10)
