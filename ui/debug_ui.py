@@ -100,6 +100,7 @@ class DebugWindow:
         self.state_vars["pot"] = tk.StringVar(value="-")
         self.state_vars["board"] = tk.StringVar(value="-")
         self.state_vars["hero_position"] = tk.StringVar(value="-")
+        self.state_vars["hero_cards"] = tk.StringVar(value="-")
         self.state_vars["street"] = tk.StringVar(value="-")
         self.state_vars["hero_action"] = tk.StringVar(value="NO")
         self._build_state_fields(self.initial_format)
@@ -170,6 +171,7 @@ class DebugWindow:
         for position in self._position_order(self.format_var.get()):
             self.state_vars[position].set(state.position_bets.get(position, "-"))
         self.state_vars["hero_position"].set(state.hero_position)
+        self.state_vars["hero_cards"].set(state.hero_cards)
         self.state_vars["street"].set(state.street)
         self.state_vars["hero_action"].set(state.hero_action)
         self.state_vars["pot"].set(state.pot)
@@ -264,7 +266,11 @@ class DebugWindow:
         hero_position_label.grid(row=row, column=0, sticky="w", pady=(8, 0))
         hero_position_value = ttk.Label(self.state_box, textvariable=self.state_vars["hero_position"])
         hero_position_value.grid(row=row, column=1, sticky="w", padx=(4, 16), pady=(8, 0))
-        self.state_value_labels.extend([hero_position_label, hero_position_value])
+        hero_cards_label = ttk.Label(self.state_box, text="Hero Cards:")
+        hero_cards_label.grid(row=row, column=2, sticky="w", pady=(8, 0))
+        hero_cards_value = ttk.Label(self.state_box, textvariable=self.state_vars["hero_cards"])
+        hero_cards_value.grid(row=row, column=3, sticky="w", padx=(4, 16), pady=(8, 0))
+        self.state_value_labels.extend([hero_position_label, hero_position_value, hero_cards_label, hero_cards_value])
 
         row += 1
         street_label = ttk.Label(self.state_box, text="Street:")

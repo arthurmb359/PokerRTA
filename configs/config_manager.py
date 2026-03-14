@@ -39,6 +39,7 @@ DEFAULT_CONFIG = {
                 "pot": [],
                 "board": [],
                 "hero_action": [[500, 500, 700, 550]],
+                "hero_cards": [[500, 500, 550, 550]],
             },
             "6-max": {
                 "bet": [
@@ -52,6 +53,7 @@ DEFAULT_CONFIG = {
                 "pot": [],
                 "board": [],
                 "hero_action": [[500, 500, 700, 550]],
+                "hero_cards": [[500, 500, 550, 550]],
             },
         },
         "PPPoker": {
@@ -63,6 +65,7 @@ DEFAULT_CONFIG = {
                 "pot": [],
                 "board": [],
                 "hero_action": [[500, 500, 700, 550]],
+                "hero_cards": [[500, 500, 550, 550]],
             },
             "6-max": {
                 "bet": [
@@ -76,6 +79,7 @@ DEFAULT_CONFIG = {
                 "pot": [],
                 "board": [],
                 "hero_action": [[500, 500, 700, 550]],
+                "hero_cards": [[500, 500, 550, 550]],
             },
         },
     },
@@ -159,7 +163,7 @@ def set_calibration_category(
     config = load_config()
     fmt = config["calibrations"][platform][game_format]
     if not isinstance(fmt, dict):
-        fmt = {"bet": fmt, "pot": [], "board": [], "hero_action": []}
+        fmt = {"bet": fmt, "pot": [], "board": [], "hero_action": [], "hero_cards": []}
         config["calibrations"][platform][game_format] = fmt
     fmt[category] = regions
     save_config(config)
@@ -203,6 +207,7 @@ def _normalize_calibration_schema(config: dict) -> dict:
                     "pot": [],
                     "board": [],
                     "hero_action": [],
+                    "hero_cards": [],
                 }
             elif isinstance(value, dict):
                 value.setdefault("bet", [])
@@ -211,6 +216,7 @@ def _normalize_calibration_schema(config: dict) -> dict:
                 if "my_turn" in value and "hero_action" not in value:
                     value["hero_action"] = value.pop("my_turn")
                 value.setdefault("hero_action", [])
+                value.setdefault("hero_cards", [])
     return config
 
 

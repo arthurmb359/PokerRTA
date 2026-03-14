@@ -23,22 +23,26 @@ def apply_runtime_regions(
     pot_regions_abs: list[tuple[int, int, int, int]],
     board_regions_abs: list[tuple[int, int, int, int]],
     hero_action_regions_abs: list[tuple[int, int, int, int]],
+    hero_cards_regions_abs: list[tuple[int, int, int, int]],
 ):
     if category == "bet":
         for i, rel in enumerate(regions):
             if i >= len(players):
                 break
             players[i].bet_region = to_absolute_region(rel)
-        return pot_regions_abs, board_regions_abs, hero_action_regions_abs, "bet"
+        return pot_regions_abs, board_regions_abs, hero_action_regions_abs, hero_cards_regions_abs, "bet"
 
     if category == "pot":
-        return [to_absolute_region(r) for r in regions], board_regions_abs, hero_action_regions_abs, "pot"
+        return [to_absolute_region(r) for r in regions], board_regions_abs, hero_action_regions_abs, hero_cards_regions_abs, "pot"
 
     if category == "board":
-        return pot_regions_abs, [to_absolute_region(r) for r in regions], hero_action_regions_abs, "board"
+        return pot_regions_abs, [to_absolute_region(r) for r in regions], hero_action_regions_abs, hero_cards_regions_abs, "board"
 
     if category == "hero_action":
-        return pot_regions_abs, board_regions_abs, [to_absolute_region(r) for r in regions], "hero_action"
+        return pot_regions_abs, board_regions_abs, [to_absolute_region(r) for r in regions], hero_cards_regions_abs, "hero_action"
 
-    return pot_regions_abs, board_regions_abs, hero_action_regions_abs, None
+    if category == "hero_cards":
+        return pot_regions_abs, board_regions_abs, hero_action_regions_abs, [to_absolute_region(r) for r in regions], "hero_cards"
+
+    return pot_regions_abs, board_regions_abs, hero_action_regions_abs, hero_cards_regions_abs, None
 

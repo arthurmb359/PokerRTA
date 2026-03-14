@@ -39,8 +39,13 @@ class GameSessionController:
             ),
             OverlayCategorySnapshot(
                 category="hero_action",
-                label_prefix="HEROo TURN",
+                label_prefix="MY TURN",
                 regions=tuple(tuple(region) for region in get_regions_category(self.game.platform, self.game.game_format, "hero_action")),
+            ),
+            OverlayCategorySnapshot(
+                category="hero_cards",
+                label_prefix="HERO",
+                regions=tuple(tuple(region) for region in get_regions_category(self.game.platform, self.game.game_format, "hero_cards")),
             ),
         )
         return OverlayViewSnapshot(

@@ -5,6 +5,8 @@ from services.recognition.bet_reader import BetReader
 from services.recognition.ocr_service import OCRService
 from services.recognition.pot_reader import PotReader
 from services.recognition.hero_action_reader import HeroActionReader
+from services.recognition.hero_cards_reader import HeroCardsReader
+from PIL import Image
 
 
 class TableAnalyzer:
@@ -15,6 +17,7 @@ class TableAnalyzer:
         self.pot_reader = PotReader(self.ocr_service)
         self.board_reader = BoardReader(platform=platform)
         self.hero_action_reader = HeroActionReader(platform=platform)
+        self.hero_cards_reader = HeroCardsReader(platform=platform)
 
     def update_button_position(self, table, dealer_image, players, btn_img_pos, button_pos, dealer_miss_count):
         location = table.check_on_screen(dealer_image, log_miss=False)
@@ -49,6 +52,7 @@ class TableAnalyzer:
         pot_regions_abs,
         board_regions_abs,
         hero_action_regions_abs,
+        hero_cards_regions_abs,
         overlay,
         previous_state,
     ):
@@ -86,6 +90,15 @@ class TableAnalyzer:
                 latest_region_images,
             )
 
+        hero_cards = "-"
+        if hero_cards_regions_abs:
+            hero_cards = self._read_hero_cards(
+                hero_cards_regions_abs[0],
+                "hero_cards_0",
+                overlay,
+                latest_region_images,
+            )
+
         pot_str = self._format_value(pot_value)
         board_str = board_text if board_text else "-"
         street = self._infer_street(board_str)
@@ -94,6 +107,7 @@ class TableAnalyzer:
         state = {
             "position_bets": position_bets,
             "hero_position": hero_position,
+            "hero_cards": hero_cards,
             "street": street,
             "hero_action": hero_action,
             "pot": pot_str,
@@ -133,6 +147,13 @@ class TableAnalyzer:
         detected, _score = self.hero_action_reader.read(raw_pil)
         image_store[f"{key}_raw"] = raw_pil
         return "YES" if detected else "NO"
+
+    def _read_hero_cards(self, region, key, overlay, image_store):
+        raw_pil, _safe_region = self.capture.screenshot_region(region, overlay=overlay)
+        hero_cards, gray_img = self.hero_cards_reader.read(raw_pil)
+        image_store[f"{key}_raw"] = raw_pil
+        image_store[f"{key}_gray"] = Image.fromarray(gray_img)
+        return hero_cards
 
     @staticmethod
     def _format_value(value):

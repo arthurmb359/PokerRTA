@@ -33,6 +33,7 @@ class GameSession:
             "position_bets": {},
             "street": "-",
             "hero_action": "NO",
+            "hero_cards": "-",
             "pot": "-",
             "board": "-",
         }
@@ -43,9 +44,11 @@ class GameSession:
         self.pot_regions_rel = setup.pot_regions_rel
         self.board_regions_rel = setup.board_regions_rel
         self.hero_action_regions_rel = setup.hero_action_regions_rel
+        self.hero_cards_regions_rel = setup.hero_cards_regions_rel
         self.pot_regions_abs = setup.pot_regions_abs
         self.board_regions_abs = setup.board_regions_abs
         self.hero_action_regions_abs = setup.hero_action_regions_abs
+        self.hero_cards_regions_abs = setup.hero_cards_regions_abs
 
         self.screenlist = [None] * len(self.list)
         self.last_raw_screenlist = [None] * len(self.list)
@@ -102,6 +105,7 @@ class GameSession:
                 state_snapshot = DebugStateSnapshot(
                     position_bets=dict(self.last_game_state.get("position_bets", {})),
                     hero_position=self.last_game_state.get("hero_position", "-"),
+                    hero_cards=self.last_game_state.get("hero_cards", "-"),
                     street=self.last_game_state.get("street", "-"),
                     hero_action=self.last_game_state.get("hero_action", "NO"),
                     pot=self.last_game_state.get("pot", "-"),
@@ -117,7 +121,7 @@ class GameSession:
             time.sleep(self.tick_rate_sec)
 
     def _on_overlay_update(self, payload: OverlayUpdateSnapshot):
-        self.pot_regions_abs, self.board_regions_abs, self.hero_action_regions_abs, updated_category = apply_runtime_regions(
+        self.pot_regions_abs, self.board_regions_abs, self.hero_action_regions_abs, self.hero_cards_regions_abs, updated_category = apply_runtime_regions(
             category=payload.category,
             regions=[list(region) for region in payload.regions],
             players=self.list,
@@ -125,6 +129,7 @@ class GameSession:
             pot_regions_abs=self.pot_regions_abs,
             board_regions_abs=self.board_regions_abs,
             hero_action_regions_abs=self.hero_action_regions_abs,
+            hero_cards_regions_abs=self.hero_cards_regions_abs,
         )
         if updated_category is not None:
             print(f"[Overlay] {updated_category} regions refreshed in running game")
@@ -136,6 +141,7 @@ class GameSession:
             pot_regions_abs=self.pot_regions_abs,
             board_regions_abs=self.board_regions_abs,
             hero_action_regions_abs=self.hero_action_regions_abs,
+            hero_cards_regions_abs=self.hero_cards_regions_abs,
             overlay=self.overlay,
             previous_state=self.last_game_state,
         )
